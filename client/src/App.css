@@ -19,6 +19,8 @@
     border: 1px solid;
     min-width: 1.5em;
     min-height: 1.5em;
+    max-width: 1.5em;
+    max-height: 1.5em;
     margin: 0.25em;
     user-select: none;
 }
@@ -42,15 +44,22 @@
 .Item {
     display: flex;
     justify-content: space-between;
+    align-items: center;
 }
 
 .Item input {
+    margin: 0.25em;
+    padding: 0.25em;
+    max-height: 1.5em;
+}
+
+input[type=text] {
     margin: 0.25em;
     border: 1px solid transparent;
     padding: 0.25em;
 }
 
-.Item input:hover {
+input[type=text]:hover {
     border: 1px solid gray;
 }
 
@@ -74,6 +83,11 @@ input[type=date] {
     font-family: sans-serif;
     max-width: min-content;
     min-width: max-content;
+    border: 1px solid transparent;
+}
+
+input[type=date]:hover {
+    border: 1px solid gray;
 }
 
 .DateTitle {
@@ -153,5 +167,83 @@ input[type=date] {
 
 .WeekViewCol {
     justify-self: center;
+}
+
+.Tag {
+    /* background-color: lightgray; */
+    max-width: min-content;
+    margin-right: 0.5em;
+    margin-bottom: 0.2em;
+    margin-top: 0.2em;
+    align-self: center;
+    padding: 0.1em;
+    padding-left: 0.3em;
+    font-size: small;
+    border: 1px solid;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.Tag span {
+    margin-right: 0.2em;
+}
+
+.Tag button {
+    display: none;
+    font-size: x-small;
+    font-weight: bold;
+}
+
+.Tag:hover button {
+    display: inline;
+}
+
+.TagEdit {
+    display: inline-flex;
+    flex-direction: row;
+    border: 1px solid transparent;
+    padding-left: 0.5em;
+    position: relative;
+    align-items: center;
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+}
+
+.TagEdit:hover {
+    border: 1px solid gray;
+}
+
+.TagEdit input[type=text] {
+    border: none;
+    margin: 0;
+    font-size: medium;
+    /* width: 0; */
+    display: none;
+}
+
+.TagEdit input[type=text]:focus {
+    /* width: unset; */
+    display: unset;
+}
+
+.TagEdit:hover input[type=text] {
+    /* width: unset; */
+    display: unset;
+}
+
+.TagEdit input[type=text]:hover {
+    border: none;
+}
+
+.TagSugList {
+    position: absolute;
+    display: flex;
+    flex-wrap: wrap;
+    top: 2.5em;
+    background-color: white;
+    border: 1px solid;
+    padding: 0.5em;
+    z-index: 100;
 }
 

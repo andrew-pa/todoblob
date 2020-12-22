@@ -38,27 +38,7 @@ fn get_data(user_id: Cow<str>, client_version: isize, state: State<Data>) -> Jso
             JsonValue::default()
         }
     }
-    /*let cur_ver = state.next_version.load(Ordering::Acquire).saturating_sub(1);
-    serde_json::json!({
-        "data": state.data.read().unwrap().clone(),
-        "version": cur_ver
-    }).into()*/
 }
-
-/*
-#[rocket::get("/api/user/<user_id>/update_data?<version>")]
-fn update_data(user_id: Cow<str>, version: usize, state: State<Data>) -> JsonValue {
-    let cur_ver = state.next_version.load(Ordering::Acquire).saturating_sub(1);
-    if cur_ver > version {
-        serde_json::json!({
-            "data": state.data.read().unwrap().clone(),
-            "version": cur_ver
-        }).into()
-    } else {
-        JsonValue::default()
-    }
-}
-*/
 
 #[rocket::post("/api/user/<user_id>/data", data = "<patch>")]
 fn accept_patches(user_id: Cow<str>, patch: Json<json_patch::Patch>, state: State<Data>)
@@ -90,9 +70,11 @@ fn rocket() -> rocket::Rocket {
                                       "text": "server item",
                                       "checked": false,
                                       "duedate": null,
-                                      "assigned_day": "2020-12-21"
+                                      "assigned_day": "2020-12-21",
+                                      "tags": []
                                   }
-                              ]
+                              ],
+                              "tags": []
                           }).into(),
             patches: Vec::new()
         })))

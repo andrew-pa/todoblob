@@ -1,14 +1,16 @@
 import React from 'react';
 import './App.css';
-import { useTeledata, cdapply } from './Transport.js';
+import { useTeledata, usePatchableState, cdapply } from './Transport.js';
 import { BrowserRouter as Router, Switch, Route, Link, NavLink, Redirect } from 'react-router-dom';
+import Fuse from 'fuse.js';
 
 /*
- * suggestions
- * week view
- * search
- * tags
+ + suggestions
+ + week view
+ + search
+ + tags
  * backend db
+ * subitems
  */
 
 const DAY_IN_TIME = (1000 * 3600 * 24);
@@ -41,7 +43,7 @@ function computeDueDateColor(duedate) {
     if(!duedate) return 'black';
     const now = today().getTime();
     const due = (strToDate(duedate)).getTime();
-    if(now >= due && now <= due+DAY_IN_TIME) {
+    if(now >= due && now <= due+DAY_IN_TIME/2) {
         return 'rgb(230,120,0)'
     } else if(now > due) {
         return 'red';
@@ -50,17 +52,87 @@ function computeDueDateColor(duedate) {
     }
 }
 
-function ChecklistItem({data: { text, checked, duedate, assigned_day }, apply, small}) {
+const TagContext = React.createContext({ tags: [], applyTags: () => {} });
+
+function TagEdit({tags, apply, placeholder}) {
+    function Tag({text, onClick, symbol}) {
+        return (
+            <div className="Tag">
+                <span>{text}</span><button onClick={onClick}>{symbol||'✖'}</button>
+            </div>
+        );
+    }
+
+    const [curTagTx, setCurTagTx] = React.useState('');
+
+    let {tags: possibleTags, applyTags: applyPossibleTags} = React.useContext(TagContext);
+    possibleTags = possibleTags || [];
+
+    const tagSugGen = React.useMemo(() => new Fuse(possibleTags.filter(tag => tags.indexOf(tag) == -1)), [possibleTags, tags]);
+    const tagSugs   = React.useMemo(() => tagSugGen.search(curTagTx), [tagSugGen, curTagTx]);
+
+    function addTag(tag) {
+        if(tags.indexOf(tag) != -1) return;
+        setCurTagTx('');
+        apply([{
+            op: 'add', path: '/-', value: tag
+        }]);
+        if(possibleTags.indexOf(tag) == -1) {
+            applyPossibleTags([{
+                op: 'add', path: '/-', value: tag
+            }]);
+        }
+    }
+
+    function onKeyDown(e) {
+        if(e.key == 'Tab') {
+            e.preventDefault();
+            if(tagSugs.length>0) addTag(tagSugs[0].item);
+        } else if(e.key == 'Enter') {
+            e.preventDefault();
+            if(curTagTx.length > 0) {
+                addTag(curTagTx);
+            }
+        } else if(e.key == 'Backspace' && curTagTx.length == 0 && tags.length>0) {
+            apply([{
+                op: 'remove', path: `/${tags.length-1}`
+            }]);
+        }
+    }
+
+    return (
+        <div className="TagEdit">
+            {tags.length==0 && curTagTx.length == 0 && <span style={{color: 'gray'}}>{placeholder}</span>}
+            <>{tags.map((tag, ix) => <Tag key={ix} text={tag} onClick={() => apply([{
+                op: 'remove', path: `/${ix}`
+            }])}/>)}</>
+            <div style={{position: 'relative', flexGrow: '1', maxWidth: 'max-content'}}>
+            <input type="text"
+                value={curTagTx} onChange={(e) => setCurTagTx(e.target.value)}
+                onKeyDown={onKeyDown}/>
+            {curTagTx.length > 0 && tagSugs.length > 0 && <div className="TagSugList">
+                {tagSugs.map(tag => <Tag key={tag.refIndex} text={tag.item} symbol="+" onClick={() => addTag(tag.item)}/>)}
+            </div>}
+            </div>
+        </div>
+    );
+}
+
+function ChecklistItem({data: { text, checked, duedate, assigned_day, tags }, apply, small}) {
     const [showDetails, setShowDetails] = React.useState(false);
 
     function controls() {
         return (<>
+
+            <TagEdit tags={tags} apply={cdapply(apply,'/tags')}/>
+
             <button onClick={() => apply([{ op: 'remove', path: '/' }])}>✖</button>
             <button onClick={() => { var d = strToDate(assigned_day);  apply([{
                 op: 'replace',
                 path: '/assigned_day',
                 value: dateToStr(new Date(d.getTime() + DAY_IN_TIME))
             }]); }}>→</button>
+
         </>);
     }
 
@@ -77,14 +149,14 @@ function ChecklistItem({data: { text, checked, duedate, assigned_day }, apply, s
             }])}/>
 
             <div>
-                <button onClick={() => setShowDetails(!showDetails)}>⋮</button>
                 {!small && controls()}
+                <button onClick={() => setShowDetails(!showDetails)}>⋮</button>
             </div>
         </div>
 
         <div className="Item" style={{display: showDetails?'unset':'none'}}>
             <span>assigned day:</span>
-            <input type="date" value={assigned_day} style={{maxWidth: 'min-content'}} onChange={(e) => apply([{
+            <input type="date" value={assigned_day} required style={{maxWidth: 'min-content'}} onChange={(e) => apply([{
                 op: 'replace', path: '/assigned_day', value: e.target.value
             }])}/>
             {small && controls()}
@@ -92,9 +164,47 @@ function ChecklistItem({data: { text, checked, duedate, assigned_day }, apply, s
     </div>);
 }
 
-function DayTodoList({data, apply, currentDate, smallItems}) {
-    const [newItemText, setNewItemText] = React.useState('');
+function newItem(vals) {
+    return { text: '', checked: false, duedate: null, assigned_day: '2020-12-12', tags: [], ...vals };
+}
 
+function NewItemEdit({data, apply, small, itemProps, itemTags }) {
+    const [newItemText, setNewItemText] = React.useState('');
+    const [newItemDueDate, setNewItemDueDate] = React.useState(null);
+    let [newItemTags, applyNewItemTags] = usePatchableState([]);
+    if(itemTags != undefined) {
+        [newItemTags, applyNewItemTags] = itemTags;
+    }
+
+    function addItem() {
+        apply([{
+            op: 'add', path: '/items/-',
+            value: newItem({text: newItemText, duedate: newItemDueDate, tags: newItemTags, ...itemProps})
+        }]); 
+        setNewItemText('');
+    }
+
+    function onKeyDown(e) {
+        if(e.key == 'Enter') addItem();
+    }
+
+    return (
+        <div className="ItemCont">
+            <div className="Item">
+                <input type="text" value={newItemText} placeholder="new item..."
+                    style={{flexGrow: '1'}}
+                    onKeyDown={onKeyDown}
+                    onChange={(e) => setNewItemText(e.target.value)}/>
+                {!small && <input type="date" value={newItemDueDate} onChange={(e) => setNewItemDueDate(e.target.value)}/>}
+                {!small && <TagEdit tags={newItemTags} apply={applyNewItemTags}/>}
+                <button onClick={addItem}>+</button>
+            </div>
+       </div>
+    );
+     
+}
+
+function DayTodoList({data, apply, currentDate, smallItems}) {
     const [checkedItems, uncheckedItems] = React.useMemo(() => {
             const curDateS = dateToStr(currentDate);
             let items = data.items
@@ -109,20 +219,7 @@ function DayTodoList({data, apply, currentDate, smallItems}) {
             {uncheckedItems.map(it =>
                 <ChecklistItem key={it.index} data={it} apply={cdapply(apply, `/items/${it.index}`)} small={smallItems}/>)}
 
-            <div className="ItemCont">
-                <div className="Item">
-                <input type="text" value={newItemText} placeholder="new item..."
-                    style={{width: '100%'}}
-                    onChange={(e) => setNewItemText(e.target.value)}/>
-                <button onClick={() => {
-                    apply([{
-                        op: 'add', path: '/items/-',
-                        value: { text: newItemText, checked: false, duedate: null, assigned_day: dateToStr(currentDate) }
-                    }]); 
-                    setNewItemText('');
-                }}>+</button>
-                </div>
-            </div>
+            <NewItemEdit data={data} apply={apply} itemProps={{assigned_day: dateToStr(currentDate)}} small={smallItems}/>
             {checkedItems.length > 0 && <hr/>}
 
             {checkedItems.map(it =>
@@ -217,8 +314,49 @@ function WeekView({data, apply}) {
     );
 }
 
+function SearchView({data, apply}) {
+    const [query, setQuery] = React.useState('');
+    const [queryTags, applyQueryTags] = usePatchableState([]);
+
+    const itemsSearcher = React.useMemo(() => new Fuse(data.items, { keys: [ 'text', 'tags' ] }), [data.items]);
+    const items = React.useMemo(() => {
+        let fzres = itemsSearcher.search(query);
+        if(fzres.length == 0) {
+            fzres = data.items.map((v,i) => ({ item: v, refIndex: i }));
+        }
+        if(queryTags.length > 0) {
+            return fzres.filter(i =>
+                i.item.tags.reduce((a, v) => a||(queryTags.indexOf(v)!=-1), false));
+        } else {
+            return fzres;
+        }
+    }, [query, queryTags, itemsSearcher, data.items]);
+
+    return (
+        <div className="App" style={{width: '70%', justifySelf: 'center'}}>
+            <div style={{display: 'flex', alignItems: 'center'}}>
+                <span style={{padding: '0.25em'}}>search:</span>
+                <input type="text" style={{flexGrow: 1, fontSize: 'medium'}} placeholder="keywords..."
+                value={query} onChange={(e) => setQuery(e.target.value)}/>
+                <span style={{padding: '0.25em'}}>with tags:</span>
+                <TagEdit tags={queryTags} apply={applyQueryTags} placeholder="tags..."/>
+            </div>
+            <div className="TodoList">
+                {items.map(it =>
+                    <ChecklistItem key={it.refIndex} data={it.item}
+                        apply={cdapply(apply, `/items/${it.refIndex}`)} small={false}/>)}
+                    <hr/>
+                    <NewItemEdit data={data} apply={apply}
+                        itemProps={{assigned_day: ''}} itemTags={[queryTags, applyQueryTags]} small={false}/>
+            </div>
+        </div>
+    );
+}
+
 function App() {
     const [data, apply, unsync_size, ver] = useTeledata({items: []});
+
+    const tagContextValue = React.useMemo(() => ({ tags: data.tags, applyTags: cdapply(apply, '/tags') }), [data.tags, apply]);
 
     return (
         <Router>
@@ -227,9 +365,10 @@ function App() {
                 <span>Todos</span>
                 <NavLink to="/day" activeClassName="current">by day</NavLink>
                 <NavLink to="/week" activeClassName="current">by week</NavLink>
-
+                <NavLink to="/search" activeClassName="current">by filter</NavLink>
             </div>
 
+                <TagContext.Provider value={tagContextValue}>
             <Switch>
                 <Route path="/day">
                     <SingleDayView data={data} apply={apply}/>
@@ -237,10 +376,14 @@ function App() {
                 <Route path="/week">
                     <WeekView data={data} apply={apply}/>
                 </Route>
+                <Route path="/search">
+                    <SearchView data={data} apply={apply}/>
+                </Route>
                 <Route exact path="/">
                     <Redirect to="/day"/>
                 </Route>
             </Switch>
+                </TagContext.Provider>
 
             <p className="Footer" style={{fontSize: 'small', fontStyle: 'italic', textAlign: 'center', color: '#aaa'}}>
                 Unsynchronized patches: {unsync_size} &mdash; Data version: {ver}

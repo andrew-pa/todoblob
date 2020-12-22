@@ -17,6 +17,12 @@ function smartPatchMerge(src_a, src_b) {
     return main;
 }
 
+export function usePatchableState(initial) {
+    const [state, setState] = React.useState(initial);
+
+    return [ state, patch => setState(prev_state => jsonPatch.apply(oo.clone(prev_state), patch).doc) ];
+}
+
 export function useTeledata(initial) {
     const updateTimer = React.useRef(1);
     const numEmptyUpdates = React.useRef(0);
@@ -77,7 +83,7 @@ export function useTeledata(initial) {
                                 throw res;
                             }
                         } else {
-                            updateTimer.current = Math.min(Math.pow(2, numEmptyUpdates.current), 48);
+                            updateTimer.current = Math.min(Math.pow(2, numEmptyUpdates.current), 128);
                             numEmptyUpdates.current += 1;
                         }
                     })
