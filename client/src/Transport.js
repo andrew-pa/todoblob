@@ -77,7 +77,7 @@ export function useTeledata(initial) {
                                 throw res;
                             }
                         } else {
-                            updateTimer.current = Math.min(Math.pow(2, numEmptyUpdates.current), 32);
+                            updateTimer.current = Math.min(Math.pow(2, numEmptyUpdates.current), 48);
                             numEmptyUpdates.current += 1;
                         }
                     })

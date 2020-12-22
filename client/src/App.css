@@ -1,38 +1,157 @@
 .App {
-  text-align: center;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 1em;
+    grid-area: App;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.AppInner {
+    text-align: center;
+    display: flex;
+    flex-direction: row;
+    width: 100%;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.Checkbox {
+    display: inline-block;
+    border: 1px solid;
+    min-width: 1.5em;
+    min-height: 1.5em;
+    margin: 0.25em;
+    user-select: none;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.Checkbox:hover {
+    background-color: #f5f5f5;
 }
 
-.App-link {
-  color: #61dafb;
+.TodoList {
+    width: 100%;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.ItemCont {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border: 1.5px solid;
+    margin: 0.5em;
 }
+
+.Item {
+    display: flex;
+    justify-content: space-between;
+}
+
+.Item input {
+    margin: 0.25em;
+    border: 1px solid transparent;
+    padding: 0.25em;
+}
+
+.Item input:hover {
+    border: 1px solid gray;
+}
+
+button {
+    margin: 0.25em;
+    border: 1px solid transparent;
+    padding: 0.25em 0.5em 0.25em 0.5em;
+    text-align: center;
+    font-weight: bold;
+}
+
+button:hover {
+    border: 1px solid;
+}
+
+button:active {
+    background-color: darkgray;
+}
+
+input[type=date] {
+    font-family: sans-serif;
+    max-width: min-content;
+    min-width: max-content;
+}
+
+.DateTitle {
+    display: flex;
+    justify-content: center;
+    /* justify-content: space-between; */
+    /* width: 75%; */
+}
+
+.CurrentDate {
+    border: none;
+    font-size: x-large;
+}
+
+.Suggestion span {
+    min-width: max-content;
+    margin: 0.5em;
+    font-size: 14.3px;
+    flex-grow: 1;
+    text-align: left;
+}
+
+.Page {
+    font-family: sans-serif;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 0.5fr 10fr 0.5fr;
+    grid-template-areas:
+    "Header"
+    "App"
+    "Footer";
+}
+
+.Header {
+    grid-area: Header;
+    display: flex;
+    flex-direction: row;
+    padding-left: 1em;
+}
+
+.Header a {
+    color: gray;
+    text-decoration: none;
+    margin-top: 0.5em;
+    margin-left: 1em;
+}
+
+.Header span {
+    font-weight: bold;
+    margin-top: 0.5em;
+    margin-left: 1em;
+}
+
+.Header a:hover {
+    text-decoration: revert;
+}
+
+.Header a.current {
+    color: black;
+    font-weight: bold;
+}
+
+
+.Footer {
+    grid-area: Footer;
+}
+
+.WeekView {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+    grid-template-rows: 1fr;
+    grid-template-areas: ". . . . . . .";
+    max-width: 98vw;
+    overflow-x: scroll;
+}
+
+.WeekViewCol {
+    justify-self: center;
+}
+

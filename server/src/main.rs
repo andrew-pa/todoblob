@@ -86,7 +86,12 @@ fn rocket() -> rocket::Rocket {
             last_version: 0,
             current_data: serde_json::json!({
                               "items": [
-                                  { "text": "server item", "checked": false }
+                                  {
+                                      "text": "server item",
+                                      "checked": false,
+                                      "duedate": null,
+                                      "assigned_day": "2020-12-21"
+                                  }
                               ]
                           }).into(),
             patches: Vec::new()
