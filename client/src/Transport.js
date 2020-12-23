@@ -1,6 +1,8 @@
 import React from 'react';
 import jsonPatch from 'json8-patch';
 import oo from 'json8';
+import { useHistory } from 'react-router-dom';
+import cookies from 'browser-cookies';
 
 function smartPatchMerge(src_a, src_b) {
     // you could probably skip add/remove pairs that canceled out, but that would be tricky for questionable benefit
@@ -21,6 +23,59 @@ export function usePatchableState(initial) {
     const [state, setState] = React.useState(initial);
 
     return [ state, patch => setState(prev_state => jsonPatch.apply(oo.clone(prev_state), patch).doc) ];
+}
+
+export function useAccount(onLoginSuccess, onLoginFailure, onLogout) {
+    const [userId, setUserId] = React.useState(null);
+
+    function login(suser_id, spassword) {
+        fetch(`/api/user/login?id=${suser_id}&pswd=${spassword}`)
+            .then(res => {
+                if(res.status == 200) {
+                    setUserId(suser_id);
+                    onLoginSuccess();
+                } else if(res.status == 403) {
+                    onLoginFailure(true);
+                } else {
+                    onLoginFailure(false);
+                }
+            });
+    }
+
+    function logout() {
+        if(userId != null) {
+            cookies.erase('session');
+        }
+        setUserId(null);
+        onLogout();
+    }
+
+    React.useLayoutEffect(() => {
+        fetch('/api/user/check_cookie')
+            .then(res => {
+                if(res.status == 200) {
+                    res.text().then(uid => {
+                        setUserId(uid);
+                        onLoginSuccess();
+                    });
+                } else {
+                    if(userId != null) logout();
+                }
+            })
+    }, [userId, onLoginSuccess, logout]);
+
+    return [userId, login, logout];
+}
+
+export function createNewUser(userid, password, onSuccess, onFailure) {
+    fetch(`/api/user/new?id=${userid}&pswd=${password}`, {method: 'POST'})
+        .then(res => {
+            if(res.status == 200) {
+                onSuccess(userid, password);
+            } else {
+                onFailure(res.status == 400);
+            }
+        });
 }
 
 export function useTeledata(initial) {
@@ -64,7 +119,7 @@ export function useTeledata(initial) {
             updateTimer.current = updateTimer.current - 1;
             if(updateTimer.current <= 0) {
                 updateTimer.current = 1000000; //don't update until the fetch completes
-                fetch('/api/user/0/data?client_version='+state.version)
+                fetch('/api/data?client_version='+state.version)
                     .then(res => {
                         if(res.status != 200) throw res;
                         return res.json();
@@ -95,7 +150,7 @@ export function useTeledata(initial) {
             }
             return;
         }
-        fetch('/api/user/0/data', {
+        fetch('/api/data', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(state.outstanding_patch)

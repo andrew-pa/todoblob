@@ -1,17 +1,26 @@
-use std::{borrow::Cow, path::{Path, PathBuf}, sync::{Arc, RwLock, atomic::{AtomicUsize, Ordering}}};
+use std::{borrow::Cow, collections::HashMap, path::{Path, PathBuf}, sync::{Arc, RwLock, atomic::{AtomicUsize, Ordering}}};
 use rocket::request::State;
-use rocket::response::{NamedFile, status::{NotFound, BadRequest}};
+use rocket::response::{NamedFile, status::{NotFound, BadRequest, Custom}};
+use rocket::http::{Cookie, CookieJar, Status};
 use rocket_contrib::json::{Json, JsonValue};
 use serde_json::json;
+use log::{log, info, debug, warn, error};
+use redis::Commands;
+use time::Duration;
 
-struct DataInner {
-    current_version: usize,
-    current_data: JsonValue,
-    last_version: usize,
-    patches: Vec<json_patch::Patch>
+type DbPool = r2d2::Pool<redis::Client>;
+
+macro_rules! handle_err {
+    ($e:expr) => {
+        match $e {
+            Ok(x) => x,
+            Err(e) => {
+                error!("error: {} on ln {} col {} in {}", e, std::line!(), std::column!(), std::file!());
+                return Err(rocket::response::status::Custom(rocket::http::Status::InternalServerError, ()));
+            }
+        }
+    };
 }
-
-type Data = Arc<RwLock<DataInner>>;
 
 #[rocket::get("/<file..>", rank = 0)]
 async fn static_content(file: PathBuf) -> Result<NamedFile, NotFound<String>>{
@@ -19,64 +28,134 @@ async fn static_content(file: PathBuf) -> Result<NamedFile, NotFound<String>>{
     NamedFile::open(&path).await.map_err(|e| NotFound(e.to_string()))
 }
 
-#[rocket::get("/api/user/<user_id>/data?<client_version>")]
-fn get_data(user_id: Cow<str>, client_version: isize, state: State<Data>) -> JsonValue {
-    let data = state.read().unwrap();
-    if client_version < data.last_version as isize || client_version > data.current_version as isize { // really old data
-        json!({
-            "data": data.current_data,
-            "version": data.current_version
-        }).into()
+#[rocket::post("/api/user/new?<id>&<pswd>")]
+fn create_new_user(db_pool: State<DbPool>, id: String, pswd: String) -> Result<(), Custom<()>> {
+    let mut db_conn = handle_err!(db_pool.get());
+    if handle_err!(db_conn.exists(format!("user:{}", id))) {
+        Err(Custom(rocket::http::Status::BadRequest,()))
     } else {
-        if client_version < data.current_version as isize {
-            json!({
-                "patch": data.patches[client_version as usize-data.last_version..].iter().flat_map(|p| p.0.iter()).collect::<Vec<_>>(),
-                "version": data.current_version
-            }).into()
+        let uk = format!("user:{}", id);
+        handle_err!(db_conn.hset_multiple(&uk, &[
+            ("current_version", 0),
+            ("last_version",    0),
+        ]));
+        handle_err!(db_conn.hset(uk, "password",
+                handle_err!(bcrypt::hash(pswd, bcrypt::DEFAULT_COST))));
+        handle_err!(db_conn.set(format!("data:{}", id), r#"{"items": [], "tags": []}"#));
+        Ok(())
+    }
+}
+
+#[rocket::get("/api/user/login?<id>&<pswd>")]
+fn authenticate_user(db_pool: State<DbPool>, cookies: &CookieJar<'_>, id: String, pswd: String) -> Result<(), Custom<()>> {
+    let mut db_conn = handle_err!(db_pool.get());
+    let correct_pswd_hash: Option<String> = handle_err!(db_conn.hget(format!("user:{}", id), "password"));
+    if let Some(correct_pswd_hash) = correct_pswd_hash {
+        if handle_err!(bcrypt::verify(pswd, &correct_pswd_hash)) {
+            let session_id = uuid::Uuid::new_v4().to_string();
+            handle_err!(db_conn.set_ex(format!("session:{}", session_id), &id, Duration::days(7).whole_seconds() as usize));
+            cookies.add(Cookie::build("session", session_id).max_age(Duration::days(7)).finish());
+            Ok(())
+        } else {
+            Err(Custom(rocket::http::Status::Forbidden, ()))
+        }
+    } else {
+        Err(Custom(rocket::http::Status::Forbidden, ()))
+    }
+}
+
+fn user_id_for_session(db_conn: &mut impl Commands, cookies: &CookieJar<'_>) -> Result<String, Custom<()>> {
+    cookies.get("session")
+        .ok_or(Custom(Status::Unauthorized, ()))
+        .and_then(|sid| {
+            debug!("checking session:{}", sid.value());
+            let usr: Option<String> = handle_err!(db_conn.get(format!("session:{}", sid.value())));
+            debug!("got user id: {:?}", usr);
+            usr.ok_or(Custom(Status::NotFound, ()))
+        })
+}
+
+#[rocket::get("/api/user/check_cookie")]
+fn check_user_cookie(db_pool: State<DbPool>, cookies: &CookieJar<'_>) -> Result<String, Custom<()>> {
+    let mut db_conn = handle_err!(db_pool.get());
+    user_id_for_session(&mut *db_conn, cookies)
+}
+
+#[rocket::get("/api/data?<client_version>")]
+fn get_data(db_pool: State<DbPool>, cookies: &CookieJar<'_>, client_version: isize) -> Result<JsonValue, Custom<()>> {
+    let mut db_conn = handle_err!(db_pool.get());
+    let user_id = user_id_for_session(&mut *db_conn, cookies)?;
+
+    let info: HashMap<String, String> = handle_err!(db_conn.hgetall(format!("user:{}", user_id)));
+    let current_version: isize = handle_err!(info["current_version"].parse());
+    let last_version: isize = handle_err!(info["last_version"].parse());
+
+    if client_version < last_version || client_version > current_version { // really old data
+        let data_str: String = handle_err!(db_conn.get(format!("data:{}", user_id)));
+        debug!("got data_str = {}", data_str);
+        let current_data: serde_json::Value = handle_err!(serde_json::from_str(&data_str));
+        Ok(json!({
+            "data": current_data,
+            "version": current_version
+        }).into())
+    } else {
+        if client_version < current_version {
+            let patch_strs: Vec<String> =  handle_err!(db_conn.lrange(format!("patches:{}", user_id), client_version - last_version, -1));
+            debug!("got patch strs {}: {:?}", client_version - last_version, patch_strs);
+            let patch = patch_strs.iter().map(|s| serde_json::from_str(&s).unwrap()).flat_map(|p: json_patch::Patch| p.0.into_iter()).collect::<Vec<_>>();
+            Ok(json!({
+                "patch": patch,
+                "version": current_version
+            }).into())
         } else {
             // client data is up to date
-            JsonValue::default()
+            Ok(JsonValue::default())
         }
     }
 }
 
-#[rocket::post("/api/user/<user_id>/data", data = "<patch>")]
-fn accept_patches(user_id: Cow<str>, patch: Json<json_patch::Patch>, state: State<Data>)
-    -> Result<JsonValue, BadRequest<JsonValue>>
+#[rocket::post("/api/data", data = "<patch>")]
+fn accept_patches(db_pool: State<DbPool>, cookies: &CookieJar<'_>, patch: Json<json_patch::Patch>)
+    -> Result<JsonValue, Custom<()>>
 {
-    let mut data = state.write().unwrap();
-    json_patch::patch(&mut data.current_data, &patch)
-        .map_err(|e| BadRequest(Some(json!({"error": e.to_string()}).into())))?;
-    data.current_version += 1;
-    if data.patches.len() > 20 {
-        println!("clearing patch cache");
-        data.last_version = data.current_version;
-        data.patches.clear();
+    let mut db_conn = handle_err!(db_pool.get());
+    let user_id = user_id_for_session(&mut *db_conn, cookies)?;
+
+    let uk = format!("user:{}", user_id);
+    let info: HashMap<String, String> = handle_err!(db_conn.hgetall(&uk));
+    let mut current_version: isize = handle_err!(info["current_version"].parse());
+    let last_version: isize = handle_err!(info["last_version"].parse());
+
+    let data_str: String = handle_err!(db_conn.get(format!("data:{}", user_id)));
+    let mut current_data = handle_err!(serde_json::from_str(&data_str));
+
+    handle_err!(json_patch::patch(&mut current_data, &patch));
+    current_version += 1;
+    handle_err!(db_conn.hset(&uk, "current_version", current_version));
+    handle_err!(db_conn.set(format!("data:{}", user_id), serde_json::to_string(&current_data).unwrap()));
+    let pk = format!("patches:{}", user_id);
+    let num_patches: usize = handle_err!(db_conn.llen(&pk));
+
+    // this should be atomic
+    if num_patches > 20 {
+        info!("clearing patch cache for {}", user_id);
+        handle_err!(db_conn.hset(&uk, "last_version", current_version));
+        handle_err!(db_conn.del(&pk));
     } else {
-        data.patches.push(patch.clone());
+        handle_err!(db_conn.rpush(&pk, handle_err!(serde_json::to_string(&*patch))));
     }
-    Ok(json!({ "version": data.current_version }).into())
+    Ok(json!({ "version": current_version }).into())
 }
 
 #[rocket::launch]
 fn rocket() -> rocket::Rocket {
+    env_logger::init();
+    info!("starting up!");
+    let redis_client = redis::Client::open(std::env::var("REDIS_URL").unwrap_or("redis://127.0.0.1".into())).unwrap();
+    let db_pool = r2d2::Pool::builder().max_size(32).build(redis_client).unwrap();
     rocket::ignite()
-        .manage(Arc::new(RwLock::new(DataInner {
-            current_version: 0,
-            last_version: 0,
-            current_data: serde_json::json!({
-                              "items": [
-                                  {
-                                      "text": "server item",
-                                      "checked": false,
-                                      "duedate": null,
-                                      "assigned_day": "2020-12-21",
-                                      "tags": []
-                                  }
-                              ],
-                              "tags": []
-                          }).into(),
-            patches: Vec::new()
-        })))
-        .mount("/", rocket::routes![get_data, accept_patches])
+        .manage(db_pool)
+        .mount("/", rocket::routes![
+            get_data, accept_patches, create_new_user, authenticate_user, check_user_cookie
+        ])
 }
