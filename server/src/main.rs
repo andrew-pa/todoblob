@@ -158,7 +158,9 @@ fn accept_patches(db_pool: State<DbPool>, cookies: &CookieJar<'_>, patch: Json<j
 fn rocket() -> rocket::Rocket {
     env_logger::init();
     info!("starting up!");
-    let redis_client = redis::Client::open(std::env::var("REDIS_URL").unwrap_or("redis://127.0.0.1".into())).unwrap();
+    let redis_url = std::env::var("REDIS_URL").unwrap_or("redis://127.0.0.1".into());
+    info!("redis @ {}", redis_url);
+    let redis_client = redis::Client::open(redis_url).unwrap();
     let db_pool = r2d2::Pool::builder().max_size(32).build(redis_client).unwrap();
     rocket::ignite()
         .manage(db_pool)
