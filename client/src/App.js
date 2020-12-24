@@ -1,7 +1,7 @@
 import React from 'react';
 import './App.css';
 import { useTeledata, usePatchableState, useAccount, createNewUser, cdapply } from './Transport.js';
-import { BrowserRouter as Router, Switch, Route, NavLink, Redirect, useHistory } from 'react-router-dom';
+import { BrowserRouter as Router, Switch, Route, NavLink, Redirect } from 'react-router-dom';
 import Fuse from 'fuse.js';
 
 /*
@@ -12,7 +12,11 @@ import Fuse from 'fuse.js';
  + backend db
  * subitems
  + user accounts
- * logged out view
+ + logged out view
+ * fix SPA server side
+ * add some demo gifs
+ * optimize
+ * heroku hosting
  */
 
 const DAY_IN_TIME = (1000 * 3600 * 24);
@@ -73,16 +77,16 @@ function TagEdit({tags, apply, placeholder}) {
     let {tags: possibleTags, applyTags: applyPossibleTags} = React.useContext(TagContext);
     possibleTags = possibleTags || [];
 
-    const tagSugGen = React.useMemo(() => new Fuse(possibleTags.filter(tag => tags.indexOf(tag) == -1)), [possibleTags, tags]);
+    const tagSugGen = React.useMemo(() => new Fuse(possibleTags.filter(tag => tags.indexOf(tag) === -1)), [possibleTags, tags]);
     const tagSugs   = React.useMemo(() => tagSugGen.search(curTagTx), [tagSugGen, curTagTx]);
 
     function addTag(tag) {
-        if(tags.indexOf(tag) != -1) return;
+        if(tags.indexOf(tag) !== -1) return;
         setCurTagTx('');
         apply([{
             op: 'add', path: '/-', value: tag
         }]);
-        if(possibleTags.indexOf(tag) == -1) {
+        if(possibleTags.indexOf(tag) === -1) {
             applyPossibleTags([{
                 op: 'add', path: '/-', value: tag
             }]);
@@ -90,15 +94,15 @@ function TagEdit({tags, apply, placeholder}) {
     }
 
     function onKeyDown(e) {
-        if(e.key == 'Tab') {
+        if(e.key === 'Tab') {
             e.preventDefault();
             if(tagSugs.length>0) addTag(tagSugs[0].item);
-        } else if(e.key == 'Enter') {
+        } else if(e.key === 'Enter') {
             e.preventDefault();
             if(curTagTx.length > 0) {
                 addTag(curTagTx);
             }
-        } else if(e.key == 'Backspace' && curTagTx.length == 0 && tags.length>0) {
+        } else if(e.key === 'Backspace' && curTagTx.length === 0 && tags.length>0) {
             apply([{
                 op: 'remove', path: `/${tags.length-1}`
             }]);
@@ -107,7 +111,7 @@ function TagEdit({tags, apply, placeholder}) {
 
     return (
         <div className="TagEdit">
-            {tags.length==0 && curTagTx.length == 0 && <span style={{color: 'gray'}}>{placeholder}</span>}
+            {tags.length===0 && curTagTx.length === 0 && <span style={{color: 'gray'}}>{placeholder}</span>}
             <>{tags.map((tag, ix) => <Tag key={ix} text={tag} onClick={() => apply([{
                 op: 'remove', path: `/${ix}`
             }])}/>)}</>
@@ -173,12 +177,12 @@ function newItem(vals) {
     return { text: '', checked: false, duedate: null, assigned_day: '2020-12-12', tags: [], ...vals };
 }
 
-function NewItemEdit({ data, apply, small, itemProps, itemTags, modAsgDate }) {
+function NewItemEdit({ apply, small, itemProps, itemTags, modAsgDate }) {
     const [newItemText, setNewItemText] = React.useState('');
     const [newItemDueDate, setNewItemDueDate] = React.useState(null);
     const [newItemAsgDate, setNewItemAsgDate] = React.useState(modAsgDate);
     let [newItemTags, applyNewItemTags] = usePatchableState([]);
-    if(itemTags != undefined) {
+    if(itemTags !== undefined) {
         [newItemTags, applyNewItemTags] = itemTags;
     }
 
@@ -195,7 +199,7 @@ function NewItemEdit({ data, apply, small, itemProps, itemTags, modAsgDate }) {
     }
 
     function onKeyDown(e) {
-        if(e.key == 'Enter') addItem();
+        if(e.key === 'Enter') addItem();
     }
 
     return (
@@ -220,7 +224,7 @@ function DayTodoList({data, apply, currentDate, smallItems}) {
             const curDateS = dateToStr(currentDate);
             let items = data.items
                 .map((item, index) => { item.index = index; return item; })
-                .filter(item => curDateS == item.assigned_day);
+                .filter(item => curDateS === item.assigned_day);
             return [items.filter(i => i.checked), items.filter(i => !i.checked)];
         },
         [data.items, currentDate]);
@@ -332,12 +336,12 @@ function SearchView({data, apply}) {
     const itemsSearcher = React.useMemo(() => new Fuse(data.items, { keys: [ 'text', 'tags' ] }), [data.items]);
     const items = React.useMemo(() => {
         let fzres = itemsSearcher.search(query);
-        if(fzres.length == 0) {
+        if(fzres.length === 0) {
             fzres = data.items.map((v,i) => ({ item: v, refIndex: i }));
         }
         if(queryTags.length > 0) {
             return fzres.filter(i =>
-                i.item.tags.reduce((a, v) => a||(queryTags.indexOf(v)!=-1), false));
+                i.item.tags.reduce((a, v) => a||(queryTags.indexOf(v)!==-1), false));
         } else {
             return fzres;
         }
