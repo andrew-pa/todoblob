@@ -165,7 +165,6 @@ fn rocket() -> rocket::Rocket {
     rocket::ignite()
         .manage(db_pool)
         .mount("/", rocket::routes![
-            static_content, spa_root,
             get_data, accept_patches,
             create_new_user, authenticate_user, check_user_cookie
         ])
