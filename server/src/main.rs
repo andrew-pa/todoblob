@@ -24,9 +24,16 @@ macro_rules! handle_err {
 
 #[rocket::get("/<file..>", rank = 0)]
 async fn static_content(file: PathBuf) -> Result<NamedFile, NotFound<String>>{
-    let path = Path::new("public/").join(file);
+    let path = Path::new("../client/build/").join(file);
     NamedFile::open(&path).await.map_err(|e| NotFound(e.to_string()))
 }
+
+#[rocket::get("/", rank = 0)]
+async fn spa_root() -> Result<NamedFile, NotFound<String>>{
+    let path = Path::new("../client/build/index.html");
+    NamedFile::open(&path).await.map_err(|e| NotFound(e.to_string()))
+}
+
 
 #[rocket::post("/api/user/new?<id>&<pswd>")]
 fn create_new_user(db_pool: State<DbPool>, id: String, pswd: String) -> Result<(), Custom<()>> {
@@ -156,6 +163,8 @@ fn rocket() -> rocket::Rocket {
     rocket::ignite()
         .manage(db_pool)
         .mount("/", rocket::routes![
-            get_data, accept_patches, create_new_user, authenticate_user, check_user_cookie
+            static_content, spa_root,
+            get_data, accept_patches,
+            create_new_user, authenticate_user, check_user_cookie
         ])
 }

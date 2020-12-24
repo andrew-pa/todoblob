@@ -51,6 +51,7 @@ export function useAccount(onLoginSuccess, onLoginFailure, onLogout) {
     }
 
     React.useLayoutEffect(() => {
+        if(!cookies.get('session')) return;
         fetch('/api/user/check_cookie')
             .then(res => {
                 if(res.status == 200) {
