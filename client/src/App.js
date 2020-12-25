@@ -13,9 +13,10 @@ import Fuse from 'fuse.js';
  * subitems
  + user accounts
  + logged out view
- * fix SPA server side
+ + fix SPA server side
  * add some demo gifs
  * optimize
+ * unassigned items
  * heroku hosting
  */
 

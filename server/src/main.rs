@@ -23,15 +23,21 @@ macro_rules! handle_err {
 }
 
 #[rocket::get("/<file..>", rank = 0)]
-async fn static_content(file: PathBuf) -> Result<NamedFile, NotFound<String>>{
+async fn static_content(file: PathBuf) -> Result<NamedFile, Custom<()>>{
     let path = Path::new("../client/build/").join(file);
-    NamedFile::open(&path).await.map_err(|e| NotFound(e.to_string()))
+    match NamedFile::open(&path).await {
+        Ok(f) => Ok(f),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            Ok(handle_err!(NamedFile::open("../client/build/index.html").await))
+        },
+        Err(e) => handle_err!(Err(e))
+    }
 }
 
 #[rocket::get("/", rank = 0)]
-async fn spa_root() -> Result<NamedFile, NotFound<String>>{
+async fn spa_root() -> Result<NamedFile, Custom<()>>{
     let path = Path::new("../client/build/index.html");
-    NamedFile::open(&path).await.map_err(|e| NotFound(e.to_string()))
+    Ok(handle_err!(NamedFile::open(&path).await))
 }
 
 
