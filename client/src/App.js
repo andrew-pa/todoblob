@@ -179,7 +179,7 @@ function newItem(vals) {
 
 function NewItemEdit({ apply, small, itemProps, itemTags, modAsgDate }) {
     const [newItemText, setNewItemText] = React.useState('');
-    const [newItemDueDate, setNewItemDueDate] = React.useState(null);
+    const [newItemDueDate, setNewItemDueDate] = React.useState('');
     const [newItemAsgDate, setNewItemAsgDate] = React.useState(modAsgDate);
     let [newItemTags, applyNewItemTags] = usePatchableState([]);
     if(itemTags !== undefined) {
