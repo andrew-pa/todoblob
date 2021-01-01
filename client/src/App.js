@@ -7,19 +7,25 @@ import { APP_NAME, TagContext } from './Common';
 import { SingleDayView, WeekView, SearchView } from './Views.js';
 
 /*
- + suggestions
- + week view
- + search
- + tags
- + backend db
- * subitems
- + user accounts
- + logged out view
- + fix SPA server side
  * add some demo gifs
- * optimize
- + unassigned items
+ * phone apps
+ * reorder items
+ * reoccuring items (no clutter!)
+ * subitems
+ * animated CSS
+ * ding sound when you check things off
+ * keyboard shortcuts
  * heroku hosting
+ * optimize
+ + backend db
+ + fix SPA server side
+ + logged out view
+ + search
+ + suggestions
+ + tags
+ + unassigned items
+ + user accounts
+ + week view
  */
 
 function TodoApp({userId, logout}) {

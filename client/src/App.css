@@ -184,7 +184,7 @@ input[type=date]:hover {
 
 .Tag {
     /* background-color: lightgray; */
-    max-width: min-content;
+    /* max-width: min-content; */
     margin-right: 0.5em;
     margin-bottom: 0.2em;
     margin-top: 0.2em;
