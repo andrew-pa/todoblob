@@ -20,6 +20,7 @@ export function dateToStr(date) {
 export function strToDate(str) {
     const re = /(\d\d\d\d)-(\d\d)-(\d\d)/;
     let ma = re.exec(str);
+    if(!ma) console.log(str, ma);
     return new Date(parseInt(ma[1]), parseInt(ma[2])-1, parseInt(ma[3]));
 }
 
@@ -34,12 +35,34 @@ export function addDays(currentDate, incr) {
     return new Date(currentDate.getTime() + DAY_IN_TIME*incr);
 }
 
+export const dayNames = ['Su', 'M', 'Tu', 'W', 'Th', 'F', 'Sa'];
+export function nextAssignedDay(current, reoccurance) {
+    console.log(current, reoccurance);
+    let current_date = strToDate(current);
+    let current_day = current_date.getDay();
+    // find where we are in the reoccurance, making sure to not go into the future
+    let current_reoc_step = -1;
+    for(var di = 0; di < reoccurance.length; ++di) {
+        let i = reoccurance[di];
+        console.log(di, i, current_reoc_step);
+        if(i > current_day)
+            break;
+        current_reoc_step = di;
+        if(current_day === i) break;
+    }
+    let delta = reoccurance[(current_reoc_step+1) % reoccurance.length] - current_day;
+    console.log(current_day, current_reoc_step, dayNames[reoccurance[current_reoc_step]], dayNames[reoccurance[(current_reoc_step+1) % reoccurance.length]], delta);
+    if(delta < 0) delta += 7;
+    return new Date(current_date.getFullYear(), current_date.getMonth(),
+        current_date.getDate() + delta);
+}
+
 export function computeDueDateColor(duedate) {
     if(!duedate) return 'black';
     const now = today().getTime();
     const due = (strToDate(duedate)).getTime();
     if(now >= due && now <= due+DAY_IN_TIME/2) {
-        return 'rgb(230,120,0)'
+        return 'rgb(230,120,0)';
     } else if(now > due) {
         return 'red';
     } else if(now < due) {
@@ -113,6 +136,26 @@ export function TagEdit({tags, apply, placeholder}) {
                 {tagSugs.map(tag => <Tag key={tag.refIndex} text={tag.item} symbol="+" onClick={() => addTag(tag.item)}/>)}
             </div>}
             </div>
+        </div>
+    );
+}
+
+export function WeekdaySelector({value, onChange}) {
+
+    function toggle(day) {
+        if(value.indexOf(day) > -1) {
+            value.splice(value.indexOf(day), 1);
+            onChange(value.sort((a,b) => a-b));
+        } else {
+            value.push(day);
+            onChange(value.sort((a,b) => a-b));
+        }
+    }
+
+    return (
+        <div className="WeekdaySelector">
+            {dayNames.map((day, index) => <span className={value.indexOf(index) > -1 ? 'Day Selected' : 'Day'}
+                onClick={() => toggle(index)}>{day}</span>)}
         </div>
     );
 }

@@ -10,13 +10,14 @@ import { SingleDayView, WeekView, SearchView } from './Views.js';
  * add some demo gifs
  * phone apps
  * reorder items
- * reoccuring items (no clutter!)
- * subitems
+ / reoccuring items (no clutter!)
+    - undo checking off a reoccuring item?
+ + subitems
  * animated CSS
  * ding sound when you check things off
  * keyboard shortcuts
  * heroku hosting
- * optimize
+ * optimize and organize CSS into different files
  + backend db
  + fix SPA server side
  + logged out view

@@ -1,7 +1,7 @@
 import React from 'react';
 import Fuse from 'fuse.js';
 import { usePatchableState, cdapply } from './Transport';
-import { today, addDays, dateToStr, strToDate, TagEdit } from './Common';
+import { today, addDays, dateToStr, strToDate, TagEdit, dayNames } from './Common';
 import { ChecklistItem, NewItemEdit } from './Item';
 import { DayTodoList, SuggestionList } from './Lists';
 
@@ -45,7 +45,10 @@ export function WeekView({data, apply}) {
             </div>
             <div className="WeekView">
                 {dates.map(date => (<div className="WeekViewCol">
-                    <h3>{date.toLocaleDateString()}</h3>
+                    <h3>
+                        <span style={{paddingRight: '0.3em', color: '#555', fontWeight: 'lighter'}}>
+                            {dayNames[date.getDay()]}</span>
+                        {date.toLocaleDateString()}</h3>
                     <DayTodoList data={data} apply={apply} currentDate={date} smallItems={true}/>
                 </div>))}
             </div>

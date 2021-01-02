@@ -257,3 +257,14 @@ input[type=date]:hover {
     z-index: 100;
 }
 
+.WeekdaySelector .Day {
+    margin-left: 0.25em;
+    margin-right: 0.25em;
+    padding: 0.1em;
+    user-select: none;
+    border: 1px solid lightgray;
+}
+
+.WeekdaySelector .Day.Selected {
+    border: 1px solid black;
+}
