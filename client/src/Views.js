@@ -9,10 +9,17 @@ import { DayTodoList, SuggestionList } from './Lists';
 export function SingleDayView({data, apply}) {
     const [currentDate, setCurrentDate] = React.useState(today());
     const [showSug, setShowSug] = React.useState(true);
+
+    const isSmallDisplay = React.useMemo(() => window.innerWidth < 500 || false, [window.innerWidth]);
+
+    function suggestionButton() {
+        return <button onClick={() => setShowSug(!showSug)}>{showSug?'Hide':'Show'} suggestions</button>;
+    }
+
     return (
-        <div className="App" style={{width: '70%', justifySelf: 'center'}}>
+        <div className="App" style={{width: '80vw', justifySelf: 'center'}}>
             <div className="DateTitle">
-                <button onClick={() => setShowSug(!showSug)}>{showSug?'Hide':'Show'} suggestions</button>
+                {!isSmallDisplay && suggestionButton()}
                 <button onClick={() => setCurrentDate(addDays(currentDate, -1))}>◀</button>
                 <input className="CurrentDate" type="date" value={dateToStr(currentDate)}
                     onChange={(e) => setCurrentDate(strToDate(e.target.value))} required/>
@@ -22,7 +29,9 @@ export function SingleDayView({data, apply}) {
                 </div>
             </div>
                 {showSug && <SuggestionList data={data} apply={apply} forDate={currentDate}/>}
-                <DayTodoList data={data} apply={apply} currentDate={currentDate} smallItems={false}/>
+                <DayTodoList data={data} apply={apply} currentDate={currentDate} smallItems={isSmallDisplay}/>
+
+                {isSmallDisplay && suggestionButton()}
         </div>
     );
 }
@@ -74,9 +83,11 @@ export function SearchView({data, apply}) {
         }
     }, [query, queryTags, itemsSearcher, data.items]);
 
+    const isSmallDisplay = React.useMemo(() => window.innerWidth < 500 || false, [window.innerWidth]);
+
     return (
         <div className="App" style={{width: '70%', justifySelf: 'center'}}>
-            <div style={{display: 'flex', alignItems: 'center'}}>
+            <div style={{display: 'flex', alignItems: 'center', flexWrap: 'wrap'}}>
                 <span style={{padding: '0.25em'}}>search:</span>
                 <input type="text" style={{flexGrow: 1, fontSize: 'medium'}} placeholder="keywords..."
                 value={query} onChange={(e) => setQuery(e.target.value)}/>
@@ -90,7 +101,7 @@ export function SearchView({data, apply}) {
                     <hr/>
                     <NewItemEdit data={data} apply={apply}
                         modAsgDate={dateToStr(today())}
-                        itemTags={[queryTags, applyQueryTags]} small={false}/>
+                        itemTags={[queryTags, applyQueryTags]} small={isSmallDisplay}/>
             </div>
         </div>
     );

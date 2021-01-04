@@ -43,6 +43,7 @@
 
 .Item {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
 }
@@ -110,7 +111,7 @@ input[type=date]:hover {
 
 .CurrentDate {
     border: none;
-    font-size: x-large;
+    font-size: min(6vw,1.5em);
 }
 
 .Suggestion span {
@@ -137,6 +138,7 @@ input[type=date]:hover {
     grid-area: Header;
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     padding-left: 1em;
     justify-content: space-between;
     align-items: center;
@@ -176,6 +178,10 @@ input[type=date]:hover {
     grid-template-areas: ". . . . . . .";
     max-width: 98vw;
     overflow-x: scroll;
+}
+
+.WeekView .Item {
+    min-width: max-content;
 }
 
 .WeekViewCol {
