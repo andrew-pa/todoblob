@@ -47,15 +47,17 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
     }
 
     function addSubitem() {
-        var patch = []
+        var patch = [];
+        var item = { text: newItemText, checked: false };
         if(subitems === undefined) {
             patch.push({
-                op: 'add', path: '/subitems', value: []
+                op: 'add', path: '/subitems', value: [item]
+            });
+        } else {
+            patch.push({
+                op: 'add', path: '/subitems/-', value: item
             });
         }
-        patch.push({
-            op: 'add', path: '/subitems/-', value: { text: newItemText, checked: false }
-        });
         apply(patch);
         setNewItemText('');
     }
@@ -71,7 +73,8 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
     return (<div className="ItemCont">
         <div className="Item">
             <Checkbox checked={checked} onChange={checkOffItem}/>
-            {subitemStats && subitemStats.total > 0 && <span>{subitemStats.checked}⁄{subitemStats.total}</span>}
+            {subitemStats && subitemStats.total > 0 && <span><span style={{position: 'relative', bottom: '0.4em', backgroundColor: 'transparent', fontSize: 'small'}}>{subitemStats.checked}</span>⁄
+                                                             <span style={{position: 'relative', top: '0.4em', backgroundColor: 'transparent', fontSize: 'small'}}>{subitemStats.total}</span></span>}
             <input type="text" value={text} style={{flexGrow: 1}} onChange={(e) => apply([{
                 op: 'replace', path: '/text', value: e.target.value
             }])}/>

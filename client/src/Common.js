@@ -154,7 +154,7 @@ export function WeekdaySelector({value, onChange}) {
 
     return (
         <div className="WeekdaySelector">
-            {dayNames.map((day, index) => <span className={value.indexOf(index) > -1 ? 'Day Selected' : 'Day'}
+            {dayNames.map((day, index) => <span key={index} className={value.indexOf(index) > -1 ? 'Day Selected' : 'Day'}
                 onClick={() => toggle(index)}>{day}</span>)}
         </div>
     );

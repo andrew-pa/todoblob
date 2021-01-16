@@ -49,7 +49,7 @@ export function SuggestionList({data, apply, forDate}) {
             <div className="ItemCont Item Suggestion" style={{flexDirection: 'row', border: '1.5px dashed'}}>
                 <span>{text}</span>
                 <input type="date" required readOnly value={duedate} style={{color: computeDueDateColor(duedate)}}/>
-                <input type="date" required readOnly value={assigned_day}/>
+                <input type="date" required readOnly value={assigned_day} style={{color: 'inherit'}}/>
                 <button onClick={() => apply([{
                     op: 'replace', path: '/assigned_day', value: dateToStr(forDate)
                 }])}>🡇</button>
