@@ -78,7 +78,7 @@ export function createNewUser(userid, password, onSuccess, onFailure) {
         });
 }
 
-export function useTeledata(initial) {
+export function useTeledata(initial, onUnauth, onError) {
     const updateTimer = React.useRef(1);
     const numEmptyUpdates = React.useRef(0);
 
@@ -145,7 +145,13 @@ export function useTeledata(initial) {
                     .catch(e => {
                         numEmptyUpdates.current = 0;
                         updateTimer.current = 50;
-                        console.log(e);
+                        if(e.status == 401) {
+                            console.log('deauth');
+                            onUnauth();
+                        } else {
+                            console.log(e);
+                            if(onError) onError(e);
+                        }
                     });
             }
             return;
@@ -161,7 +167,7 @@ export function useTeledata(initial) {
                 console.log(e);
                 apply({clearosp: state.version});
             });
-    }, [state.outstanding_patch, state.version]);
+    }, [state.outstanding_patch, state.version, onUnauth, onError]);
 
     React.useEffect(() => {
         window.addEventListener('unload', syncOutstanding);

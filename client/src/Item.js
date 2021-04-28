@@ -165,7 +165,7 @@ export function NewItemEdit({ apply, small, itemProps, itemTags, modAsgDate }) {
                     onChange={(e) => setNewItemText(e.target.value)}/>
                 {!small && (modAsgDate!==undefined) && <input type="date" value={newItemAsgDate} onChange={(e) => setNewItemAsgDate(e.target.value)}/>}
                 {!small && <input type="date" value={newItemDueDate} onChange={(e) => setNewItemDueDate(e.target.value)}/>}
-                {!small && <TagEdit tags={newItemTags} apply={applyNewItemTags} placeholder="tags..."/>}
+                {!small && <TagEdit tags={newItemTags} apply={applyNewItemTags} onSubmit={addItem} placeholder="tags..."/>}
                 <button onClick={addItem}>+</button>
             </div>
        </div>

@@ -76,11 +76,15 @@ export function SearchView({data, apply}) {
             fzres = data.items.map((v,i) => ({ item: v, refIndex: i }));
         }
         if(queryTags.length > 0) {
-            return fzres.filter(i =>
+            fzres = fzres.filter(i =>
                 i.item.tags.reduce((a, v) => a||(queryTags.indexOf(v)!==-1), false));
-        } else {
-            return fzres;
         }
+        function score_item({checked, duedate}) {
+            return (duedate?strToDate(duedate).getTime():1) * checked?-1:1;
+        }
+        return fzres.sort((a, b) => {
+            return score_item(b.item) - score_item(a.item);
+        });
     }, [query, queryTags, itemsSearcher, data.items]);
 
     const isSmallDisplay = React.useMemo(() => window.innerWidth < 500 || false, [window.innerWidth]);

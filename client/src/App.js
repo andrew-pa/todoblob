@@ -30,7 +30,7 @@ import { SingleDayView, WeekView, SearchView } from './Views.js';
  */
 
 function TodoApp({userId, logout}) {
-    const [data, apply, unsync_size, ver] = useTeledata({items: []});
+    const [data, apply, unsync_size, ver] = useTeledata({items: []}, logout);
 
     const tagContextValue = React.useMemo(() => ({ tags: data.tags, applyTags: cdapply(apply, '/tags') }), [data.tags, apply]);
 
@@ -85,7 +85,9 @@ function Login({login}) {
                 <span>{APP_NAME}</span>
                 <div style={{marginRight: '1em'}}>
                     <input type="text" placeholder="username" value={uid} onChange={(e) => setUid(e.target.value)}/>
-                    <input type="password" placeholder="password" value={pswd} onChange={(e) => setPswd(e.target.value)}/>
+                    <input type="password" placeholder="password" value={pswd}
+                        onKeyDown={(e) => { if(e.key==='Enter') login(uid, pswd); }}
+                        onChange={(e) => setPswd(e.target.value)}/>
                     <button onClick={() => login(uid, pswd)}>Login</button>
                     <button onClick={() => createNewUser(uid, pswd,
                         login,

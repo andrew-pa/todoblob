@@ -76,7 +76,7 @@ export function newItem(vals) {
 
 export const TagContext = React.createContext({ tags: [], applyTags: () => {} });
 
-export function TagEdit({tags, apply, placeholder}) {
+export function TagEdit({tags, apply, placeholder, onSubmit}) {
     function Tag({text, onClick, symbol}) {
         return (
             <div className="Tag">
@@ -92,6 +92,8 @@ export function TagEdit({tags, apply, placeholder}) {
 
     const tagSugGen = React.useMemo(() => new Fuse(possibleTags.filter(tag => tags.indexOf(tag) === -1)), [possibleTags, tags]);
     const tagSugs   = React.useMemo(() => tagSugGen.search(curTagTx), [tagSugGen, curTagTx]);
+
+    const tagTextbox = React.useRef(null);
 
     function addTag(tag) {
         if(tags.indexOf(tag) !== -1) return;
@@ -114,6 +116,8 @@ export function TagEdit({tags, apply, placeholder}) {
             e.preventDefault();
             if(curTagTx.length > 0) {
                 addTag(curTagTx);
+            } else if(onSubmit) {
+                onSubmit();
             }
         } else if(e.key === 'Backspace' && curTagTx.length === 0 && tags.length>0) {
             apply([{
@@ -122,14 +126,19 @@ export function TagEdit({tags, apply, placeholder}) {
         }
     }
 
+    function focusTextbox() {
+        if(tagTextbox.current)
+            tagTextbox.current.focus();
+    }
+
     return (
         <div className="TagEdit">
-            {tags.length===0 && curTagTx.length === 0 && <span style={{color: 'gray'}}>{placeholder}</span>}
+            {tags.length===0 && curTagTx.length === 0 && <span style={{color: 'gray'}} onClick={focusTextbox}>{placeholder}</span>}
             <>{tags.map((tag, ix) => <Tag key={ix} text={tag} onClick={() => apply([{
                 op: 'remove', path: `/${ix}`
             }])}/>)}</>
             <div style={{position: 'relative', flexGrow: '1', maxWidth: 'max-content'}}>
-            <input type="text"
+            <input type="text" ref={tagTextbox}
                 value={curTagTx} onChange={(e) => setCurTagTx(e.target.value)}
                 onKeyDown={onKeyDown}/>
             {curTagTx.length > 0 && tagSugs.length > 0 && <div className="TagSugList">
