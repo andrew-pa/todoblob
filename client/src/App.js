@@ -39,7 +39,7 @@ function TodoApp({userId, logout}) {
             <div className="Page">
                 <div className="Header">
                     <div>
-                        <span>{APP_NAME}</span>
+                        <span className="Logo">{APP_NAME}</span>
                         <NavLink to="/day" activeClassName="current">by day</NavLink>
                         <NavLink to="/week" activeClassName="current">by week</NavLink>
                         <NavLink to="/search" activeClassName="current">by filter</NavLink>

@@ -9,6 +9,10 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
     function controls() {
         return (<>
 
+            <input type="date" value={duedate} style={{color: computeDueDateColor(duedate)}} onChange={(e) => apply([{
+                op: duedate===undefined?'add':'replace', path: '/duedate', value: e.target.value
+            }])}/>
+
             <TagEdit tags={tags} apply={cdapply(apply,'/tags')} placeholder="no tags"/>
 
             <button onClick={() => apply([{ op: 'remove', path: '/' }])}>✖</button>
@@ -78,9 +82,6 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
             <input type="text" value={text} style={{flexGrow: 1}} onChange={(e) => apply([{
                 op: 'replace', path: '/text', value: e.target.value
             }])}/>
-            <input type="date" value={duedate} style={{color: computeDueDateColor(duedate)}} onChange={(e) => apply([{
-                op: duedate===undefined?'add':'replace', path: '/duedate', value: e.target.value
-            }])}/>
 
             <div>
                 {!small && controls()}
@@ -88,12 +89,14 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
             </div>
         </div>
 
-        <div className="Item" style={{display: showDetails?'flex':'none', justifyContent: 'flex-start', marginLeft: '0.5em'}}>
-            <span>assigned day:</span>
+        <div className="Item" style={{display: showDetails?'flex':'none', justifyContent: 'flex-start', marginLeft: '0.5em', marginBottom: '0.5em'}}>
+            {small && controls()}
+            <div><span>assigned:</span>
             <input type="date" value={assigned_day} required style={{maxWidth: 'min-content'}} onChange={(e) => apply([{
                 op: 'replace', path: '/assigned_day', value: e.target.value
-            }])}/>
-            <span>reoccuring:</span>
+            }])}/></div>
+            <div>
+            <span style={{textAlign: "left"}}>reoccuring:</span>
             <input type="checkbox" checked={reoccuring_assignment!==undefined?true:false} onChange={(e) => {
                 if(e.target.checked) {
                     apply([{
@@ -108,7 +111,7 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
                 <WeekdaySelector value={reoccuring_assignment} onChange={(n) => apply([{
                     op: 'replace', path: '/reoccuring_assignment', value: n
                 }])}/>}
-            {small && controls()}
+            </div>
         </div>
 
         {showDetails && subitems && subitems.map((item, index) => (<div className="Item" key={index} style={{marginLeft: '0.5em', marginRight: '0.5em'}}>

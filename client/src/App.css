@@ -7,8 +7,15 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 1em;
+    margin: 0;
     grid-area: App;
+}
+
+@media (width > 700px) {
+    .App {
+        justify-self: center;
+        min-width: 75vw;
+    }
 }
 
 .AppInner {
@@ -145,6 +152,7 @@ input[type=date]:hover {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
+    padding-top: 0.7em;
     padding-left: 1em;
     justify-content: space-between;
     align-items: center;
@@ -156,6 +164,10 @@ input[type=date]:hover {
     text-decoration: none;
     margin-top: 0.5em;
     margin-left: 1em;
+}
+
+.Header .Logo {
+    font-size: larger;
 }
 
 .Header span {
@@ -177,17 +189,28 @@ input[type=date]:hover {
     grid-area: Footer;
 }
 
-.WeekView {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
-    grid-template-rows: 1fr;
-    grid-template-areas: ". . . . . . .";
-    max-width: 98vw;
-    overflow-x: scroll;
+@media (width < 700px) {
+    .WeekView {
+        display: grid;
+        grid-template-columns: 1fr;
+        /* grid-template-rows: 1fr 1fr 1fr 1fr 1fr 1fr 1fr; */
+        grid-template-areas:
+        "."
+        "."
+        "."
+        "."
+        "."
+        "."
+        ".";
+    }
 }
 
-.WeekView .Item {
-    min-width: max-content;
+@media (width > 1200px) {
+    .WeekView {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-areas: "......." ;
+    }
 }
 
 .WeekViewCol {
@@ -270,13 +293,13 @@ input[type=date]:hover {
 }
 
 .WeekdaySelector .Day {
-    margin-left: 0.25em;
-    margin-right: 0.25em;
+    margin-right: 0.5em;
     padding: 0.1em;
     user-select: none;
-    border: 1px solid lightgray;
+    border: 1px solid gray;
 }
 
 .WeekdaySelector .Day.Selected {
     border: 1px solid black;
+    color: purple;
 }

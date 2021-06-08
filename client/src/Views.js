@@ -1,14 +1,14 @@
 import React from 'react';
 import Fuse from 'fuse.js';
 import { usePatchableState, cdapply } from './Transport';
-import { today, addDays, dateToStr, strToDate, TagEdit, dayNames } from './Common';
+import { today, addDays, dateToStr, strToDate, TagEdit, dayNames, Checkbox  } from './Common';
 import { ChecklistItem, NewItemEdit } from './Item';
 import { DayTodoList, SuggestionList } from './Lists';
 
 
 export function SingleDayView({data, apply}) {
     const [currentDate, setCurrentDate] = React.useState(today());
-    const [showSug, setShowSug] = React.useState(true);
+    const [showSug, setShowSug] = React.useState(false);
 
     const isSmallDisplay = React.useMemo(() => window.innerWidth < 500 || false, [window.innerWidth]);
 
@@ -17,7 +17,7 @@ export function SingleDayView({data, apply}) {
     }
 
     return (
-        <div className="App" style={{width: '80vw', justifySelf: 'center'}}>
+        <div className="App">
             <div className="DateTitle">
                 {!isSmallDisplay && suggestionButton()}
                 <button onClick={() => setCurrentDate(addDays(currentDate, -1))}>◀</button>
@@ -53,9 +53,9 @@ export function WeekView({data, apply}) {
                 </div>
             </div>
             <div className="WeekView">
-                {dates.map(date => (<div className="WeekViewCol">
+                {dates.map((date, i) => (<div className="WeekViewCol">
                     <h3>
-                        <span style={{paddingRight: '0.3em', color: '#555', fontWeight: 'lighter'}}>
+                        <span style={{paddingRight: '0.3em', ...(i==3?{color: 'purple', 'fontWeight':'bold'}:{'fontWeight':'lighter', color: 'gray'}) }}>
                             {dayNames[date.getDay()]}</span>
                         {date.toLocaleDateString()}</h3>
                     <DayTodoList data={data} apply={apply} currentDate={date} smallItems={true}/>
@@ -68,6 +68,7 @@ export function WeekView({data, apply}) {
 export function SearchView({data, apply}) {
     const [query, setQuery] = React.useState('');
     const [queryTags, applyQueryTags] = usePatchableState([]);
+    const [checkedOnly, setCheckedOnly] = React.useState(false);
 
     const itemsSearcher = React.useMemo(() => new Fuse(data.items, { keys: [ 'text', 'tags' ] }), [data.items]);
     const items = React.useMemo(() => {
@@ -79,34 +80,45 @@ export function SearchView({data, apply}) {
             fzres = fzres.filter(i =>
                 i.item.tags.reduce((a, v) => a||(queryTags.indexOf(v)!==-1), false));
         }
+        if(checkedOnly) {
+            fzres = fzres.filter(i => i.item.checked);
+        }
         function score_item({checked, duedate}) {
             return (duedate?strToDate(duedate).getTime():1) * checked?-1:1;
         }
         return fzres.sort((a, b) => {
             return score_item(b.item) - score_item(a.item);
         });
-    }, [query, queryTags, itemsSearcher, data.items]);
+    }, [query, queryTags, checkedOnly, itemsSearcher, data.items]);
 
     const isSmallDisplay = React.useMemo(() => window.innerWidth < 500 || false, [window.innerWidth]);
 
+    function deleteMatches() {
+       apply(items.map(i => ({ op: 'remove', path: `/items/${i.refIndex}` })).reverse());
+    }
+
     return (
-        <div className="App" style={{width: '70%', justifySelf: 'center'}}>
+        <div className="App">
             <div style={{display: 'flex', alignItems: 'center', flexWrap: 'wrap'}}>
                 <span style={{padding: '0.25em'}}>search:</span>
                 <input type="text" style={{flexGrow: 1, fontSize: 'medium'}} placeholder="keywords..."
                 value={query} onChange={(e) => setQuery(e.target.value)}/>
                 <span style={{padding: '0.25em'}}>with tags:</span>
                 <TagEdit tags={queryTags} apply={applyQueryTags} placeholder="tags..."/>
+                <span style={{padding: '0.25em'}}>only completed:</span>
+                <Checkbox checked={checkedOnly} onChange={() => setCheckedOnly(!checkedOnly)}/>
             </div>
             <div className="TodoList">
                 {items.map(it =>
                     <ChecklistItem key={it.refIndex} data={it.item}
-                        apply={cdapply(apply, `/items/${it.refIndex}`)} small={false}/>)}
+                        apply={cdapply(apply, `/items/${it.refIndex}`)}
+                        small={isSmallDisplay}/>)}
                     <hr/>
                     <NewItemEdit data={data} apply={apply}
                         modAsgDate={dateToStr(today())}
                         itemTags={[queryTags, applyQueryTags]} small={isSmallDisplay}/>
             </div>
+            <button onClick={deleteMatches}>Delete matches</button>
         </div>
     );
 }

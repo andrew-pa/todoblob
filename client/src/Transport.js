@@ -145,7 +145,7 @@ export function useTeledata(initial, onUnauth, onError) {
                     .catch(e => {
                         numEmptyUpdates.current = 0;
                         updateTimer.current = 50;
-                        if(e.status == 401) {
+                        if(e.status === 401) {
                             console.log('deauth');
                             onUnauth();
                         } else {
