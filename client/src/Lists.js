@@ -51,6 +51,9 @@ export function SuggestionList({data, apply, forDate}) {
                 <input type="date" required readOnly value={duedate} style={{color: computeDueDateColor(duedate)}}/>
                 <input type="date" required readOnly value={assigned_day} style={{color: 'inherit'}}/>
                 <button onClick={() => apply([{
+                    op: 'remove', path: '/'
+                }])}>✖</button>
+                <button onClick={() => apply([{
                     op: 'replace', path: '/assigned_day', value: dateToStr(forDate)
                 }])}>🡇</button>
             </div>
