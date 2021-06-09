@@ -28,10 +28,9 @@ export function SingleDayView({data, apply}) {
                     <button onClick={() => setCurrentDate(addDays(currentDate, 1))}>▶</button>
                 </div>
             </div>
+                {isSmallDisplay && suggestionButton()}
                 {showSug && <SuggestionList data={data} apply={apply} forDate={currentDate}/>}
                 <DayTodoList data={data} apply={apply} currentDate={currentDate} smallItems={isSmallDisplay}/>
-
-                {isSmallDisplay && suggestionButton()}
         </div>
     );
 }
@@ -65,10 +64,18 @@ export function WeekView({data, apply}) {
     );
 }
 
+export function CheckboxMultistate({ state, numStates, symbols, onChange }) {
+    return (
+        <div className="Checkbox" onClick={() => onChange((state+1) % numStates)}>
+            <span style={{display: state>0?'contents':'none'}}>{symbols[state]}</span>
+        </div>
+    );
+}
+
 export function SearchView({data, apply}) {
     const [query, setQuery] = React.useState('');
     const [queryTags, applyQueryTags] = usePatchableState([]);
-    const [checkedOnly, setCheckedOnly] = React.useState(false);
+    const [checkStateQ, setCheckStateQ] = React.useState(2);
 
     const itemsSearcher = React.useMemo(() => new Fuse(data.items, { keys: [ 'text', 'tags' ] }), [data.items]);
     const items = React.useMemo(() => {
@@ -80,8 +87,8 @@ export function SearchView({data, apply}) {
             fzres = fzres.filter(i =>
                 i.item.tags.reduce((a, v) => a||(queryTags.indexOf(v)!==-1), false));
         }
-        if(checkedOnly) {
-            fzres = fzres.filter(i => i.item.checked);
+        if(checkStateQ != 2) {
+            fzres = fzres.filter(i => checkStateQ == 1 ? i.item.checked : !i.item.checked);
         }
         function score_item({checked, duedate}) {
             return (duedate?strToDate(duedate).getTime():1) * checked?-1:1;
@@ -89,12 +96,14 @@ export function SearchView({data, apply}) {
         return fzres.sort((a, b) => {
             return score_item(b.item) - score_item(a.item);
         });
-    }, [query, queryTags, checkedOnly, itemsSearcher, data.items]);
+    }, [query, queryTags, checkStateQ, itemsSearcher, data.items]);
 
     const isSmallDisplay = React.useMemo(() => window.innerWidth < 500 || false, [window.innerWidth]);
 
     function deleteMatches() {
-       apply(items.map(i => ({ op: 'remove', path: `/items/${i.refIndex}` })).reverse());
+        if(window.confirm("confirm delete?")) {
+            apply(items.map(i => ({ op: 'remove', path: `/items/${i.refIndex}` })).reverse());
+        }
     }
 
     return (
@@ -105,8 +114,8 @@ export function SearchView({data, apply}) {
                 value={query} onChange={(e) => setQuery(e.target.value)}/>
                 <span style={{padding: '0.25em'}}>with tags:</span>
                 <TagEdit tags={queryTags} apply={applyQueryTags} placeholder="tags..."/>
-                <span style={{padding: '0.25em'}}>only completed:</span>
-                <Checkbox checked={checkedOnly} onChange={() => setCheckedOnly(!checkedOnly)}/>
+                <span style={{padding: '0.25em'}}>state:</span>
+                <CheckboxMultistate state={checkStateQ} numStates={3} symbols={[' ', '✓', '?']} onChange={(s) => setCheckStateQ(s)}/>
             </div>
             <div className="TodoList">
                 {items.map(it =>
