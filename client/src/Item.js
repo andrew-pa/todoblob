@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePatchableState, cdapply } from './Transport';
 import { DAY_IN_TIME, dateToStr, strToDate, TagEdit, Checkbox, computeDueDateColor, newItem, WeekdaySelector, nextAssignedDay, today } from './Common';
+import TextareaAutosize from 'react-textarea-autosize';
 
 export function ChecklistItem({data: { text, checked, duedate, assigned_day, tags, reoccuring_assignment, subitems }, apply, small}) {
     const [showDetails, setShowDetails] = React.useState(false);
@@ -79,7 +80,7 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
             <Checkbox checked={checked} onChange={checkOffItem}/>
             {subitemStats && subitemStats.total > 0 && <span><span style={{position: 'relative', bottom: '0.4em', backgroundColor: 'transparent', fontSize: 'small'}}>{subitemStats.checked}</span>⁄
                                                              <span style={{position: 'relative', top: '0.4em', backgroundColor: 'transparent', fontSize: 'small'}}>{subitemStats.total}</span></span>}
-            <input type="text" value={text} style={{flexGrow: 1}} onChange={(e) => apply([{
+            <TextareaAutosize value={text} style={{flexGrow: 1, overflowY: showDetails?'scroll':'hidden'}} maxRows={showDetails?12:2} onChange={(e) => apply([{
                 op: 'replace', path: '/text', value: e.target.value
             }])}/>
 
@@ -118,7 +119,7 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
             <Checkbox checked={item.checked} onChange={() => apply([{
                 op: 'replace', path: `/subitems/${index}/checked`, value: !item.checked
             }])}/>
-            <input type="text" value={item.text} style={{flexGrow: 1}} onChange={(e) => apply([{
+            <TextareaAutosize value={item.text} style={{flexGrow: 1}} maxRows={5} onChange={(e) => apply([{
                 op: 'replace', path: `/subitems/${index}/text`, value: e.target.value
             }])}/>
             <button onClick={() => apply([{ op: 'remove', path: `/subitems/${index}` }])}>✖</button>
@@ -156,13 +157,13 @@ export function NewItemEdit({ apply, small, itemProps, itemTags, modAsgDate }) {
     }
 
     function onKeyDown(e) {
-        if(e.key === 'Enter') addItem();
+        if(e.key === 'Enter' && e.shiftKey) addItem();
     }
 
     return (
         <div className="ItemCont">
             <div className="Item">
-                <input type="text" value={newItemText} placeholder="new item..."
+                <TextareaAutosize value={newItemText} placeholder="new item..."
                     style={{flexGrow: '1'}}
                     onKeyDown={onKeyDown}
                     onChange={(e) => setNewItemText(e.target.value)}/>
