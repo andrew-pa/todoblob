@@ -52,7 +52,7 @@ export function WeekView({data, apply}) {
                 </div>
             </div>
             <div className="WeekView">
-                {dates.map((date, i) => (<div className="WeekViewCol">
+                {dates.map((date, i) => (<div className="WeekViewCol" key={i}>
                     <h3>
                         <span style={{paddingRight: '0.3em', ...(i==3?{color: 'purple', 'fontWeight':'bold'}:{'fontWeight':'lighter', color: 'gray'}) }}>
                             {dayNames[date.getDay()]}</span>

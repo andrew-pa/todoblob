@@ -1,7 +1,7 @@
 import React from 'react';
 import {cdapply} from './Transport';
 import { DAY_IN_TIME, dateToStr, strToDate, computeDueDateColor } from './Common';
-import { ChecklistItem, NewItemEdit } from './Item';
+import { ChecklistItem, NewItemEdit, SubitemStats } from './Item';
 
 export function DayTodoList({data, apply, currentDate, smallItems}) {
     const [checkedItems, uncheckedItems] = React.useMemo(() => {
@@ -44,9 +44,10 @@ export function SuggestionList({data, apply, forDate}) {
             .sort((ai, bi) => ai.duedate&&bi.duedate?(strToDate(ai.duedate).getTime()) - (strToDate(bi.duedate).getTime()) : -1);
     }, [data.items, forDate]);
 
-    function SuggestionItem({data: { text, duedate, assigned_day }, apply}) {
+    function SuggestionItem({data: { text, duedate, assigned_day, subitems }, apply}) {
         return (
             <div className="ItemCont Item Suggestion" style={{flexDirection: 'row', border: '1.5px dashed'}}>
+                <SubitemStats subitems={subitems}/>
                 <span>{text}</span>
                 <input type="date" required readOnly value={duedate} style={{color: computeDueDateColor(duedate)}}/>
                 <input type="date" required readOnly value={assigned_day} style={{color: 'inherit'}}/>

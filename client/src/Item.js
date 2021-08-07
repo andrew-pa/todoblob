@@ -34,7 +34,6 @@ function Subitem({item, apply, listApply, id}) {
 
             listApply([{op: item.order===undefined?'add':'replace', path: `/${otherItem.id}/order`, value: hoverIndex}]);
             otherItem.index = hoverIndex;
-
         }
     });
 
@@ -59,6 +58,25 @@ function Subitem({item, apply, listApply, id}) {
             <button onClick={() => apply([{ op: 'remove', path: '/' }])}>✖</button>
         </div>
     );
+}
+
+export function SubitemStats({subitems}) {
+    const subitemStats = React.useMemo(() => {
+        if(subitems) {
+            return { total: subitems.length, checked: subitems.reduce((pv, item) => pv + (item.checked?1:0), 0) }
+        } else {
+            return null;
+        }
+    }, [subitems]);
+
+    if(!subitemStats || subitemStats.total <= 0)
+        return null;
+
+    return (<span>
+        <span style={{position: 'relative', bottom: '0.4em', backgroundColor: 'transparent', fontSize: 'small', margin: 'revert'}}>{subitemStats.checked}</span>
+        ⁄
+        <span style={{position: 'relative', top: '0.4em', backgroundColor: 'transparent', fontSize: 'small', margin: 'revert'}}>{subitemStats.total}</span>
+    </span>);
 }
 
 export function ChecklistItem({data: { text, checked, duedate, assigned_day, tags, reoccuring_assignment, subitems }, apply, small}) {
@@ -127,14 +145,6 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
         setNewItemText('');
     }
 
-    const subitemStats = React.useMemo(() => {
-        if(subitems) {
-            return { total: subitems.length, checked: subitems.reduce((pv, item) => pv + (item.checked?1:0), 0) }
-        } else {
-            return null;
-        }
-    }, [subitems]);
-
     const subitemsDisplay = React.useMemo(() => {
         if(!showDetails || !subitems) return [];
         return subitems.map((item, id) => ({ item, id }))
@@ -144,8 +154,7 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
     return (<div className="ItemCont">
         <div className="Item">
             <Checkbox checked={checked} onChange={checkOffItem}/>
-            {subitemStats && subitemStats.total > 0 && <span><span style={{position: 'relative', bottom: '0.4em', backgroundColor: 'transparent', fontSize: 'small'}}>{subitemStats.checked}</span>⁄
-                                                             <span style={{position: 'relative', top: '0.4em', backgroundColor: 'transparent', fontSize: 'small'}}>{subitemStats.total}</span></span>}
+            <SubitemStats subitems={subitems}/>
             <TextareaAutosize value={text} style={{flexGrow: 1, overflowY: showDetails?'scroll':'hidden'}} maxRows={showDetails?12:2} onChange={(e) => apply([{
                 op: 'replace', path: '/text', value: e.target.value
             }])}/>
