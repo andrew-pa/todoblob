@@ -2,6 +2,8 @@ import React from 'react';
 import './App.css';
 import { useTeledata, useAccount, createNewUser, cdapply } from './Transport.js';
 import { BrowserRouter as Router, Switch, Route, NavLink, Redirect } from 'react-router-dom';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import { APP_NAME, TagContext } from './Common';
 import { SingleDayView, WeekView, SearchView } from './Views.js';
@@ -51,6 +53,7 @@ function TodoApp({userId, logout}) {
                 </div>
 
                 <TagContext.Provider value={tagContextValue}>
+                    <DndProvider backend={HTML5Backend}>
                     <Switch>
                         <Route path="/day">
                             <SingleDayView data={data} apply={apply}/>
@@ -65,6 +68,7 @@ function TodoApp({userId, logout}) {
                             <Redirect to="/day"/>
                         </Route>
                     </Switch>
+                    </DndProvider>
                 </TagContext.Provider>
 
                 <p className="Footer" style={{fontSize: 'small', fontStyle: 'italic', textAlign: 'center', color: '#aaa'}}>

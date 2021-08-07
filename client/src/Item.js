@@ -2,6 +2,64 @@ import React from 'react';
 import { usePatchableState, cdapply } from './Transport';
 import { DAY_IN_TIME, dateToStr, strToDate, TagEdit, Checkbox, computeDueDateColor, newItem, WeekdaySelector, nextAssignedDay, today } from './Common';
 import TextareaAutosize from 'react-textarea-autosize';
+import { useDrag, useDrop } from 'react-dnd';
+
+function Subitem({item, apply, listApply, id}) {
+    const ref = React.useRef(null);
+
+    const [{handlerId}, drop] = useDrop({
+        accept: 'SUBITEM',
+        collect(monitor) {
+            return {
+                handlerId: monitor.getHandlerId()
+            };
+        },
+        hover(otherItem, monitor) {
+            if(!ref.current) return;
+            const dragIndex = otherItem.index;
+            const hoverIndex = item.order;
+            if(dragIndex == hoverIndex) return;
+
+            const hoverBoundingRect = ref.current?.getBoundingClientRect();
+            const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
+            const clientOffset = monitor.getClientOffset();
+            const hoverClientY = clientOffset.y - hoverBoundingRect.top;
+
+            if(dragIndex < hoverIndex && hoverClientY < hoverMiddleY) return;
+            if(dragIndex > hoverIndex && hoverClientY > hoverMiddleY) return;
+            // console.log(`drag ${dragIndex} hover ${hoverIndex} self ${item.order}/${id}`);
+
+            // move item dragIndex hoverIndex
+            apply([{op: item.order===undefined?'add':'replace', path: '/order', value: dragIndex}]);
+
+            listApply([{op: item.order===undefined?'add':'replace', path: `/${otherItem.id}/order`, value: hoverIndex}]);
+            otherItem.index = hoverIndex;
+
+        }
+    });
+
+    const [{isDragging}, drag, preview] = useDrag({
+        type: 'SUBITEM',
+        item: () => ({ id: id, index: item.order }),
+        collect: (monitor) => ({
+            isDragging: monitor.isDragging()
+        })
+    });
+
+    drag(drop(ref));
+
+    return (
+        <div className="Item" style={{marginLeft: '0.5em', marginRight: '0.5em', opacity: (isDragging?0:1)}} ref={preview}>
+            <Checkbox innerRef={ref} checked={item.checked} onChange={() => apply([{
+                op: 'replace', path: `/checked`, value: !item.checked
+            }])}/>
+            <TextareaAutosize value={item.text} style={{flexGrow: 1}} maxRows={5} onChange={(e) => apply([{
+                op: 'replace', path: `/text`, value: e.target.value
+            }])}/>
+            <button onClick={() => apply([{ op: 'remove', path: '/' }])}>✖</button>
+        </div>
+    );
+}
 
 export function ChecklistItem({data: { text, checked, duedate, assigned_day, tags, reoccuring_assignment, subitems }, apply, small}) {
     const [showDetails, setShowDetails] = React.useState(false);
@@ -55,10 +113,12 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
         var patch = [];
         var item = { text: newItemText, checked: false };
         if(subitems === undefined) {
+            item.order = 0;
             patch.push({
                 op: 'add', path: '/subitems', value: [item]
             });
         } else {
+            item.order = subitems.length;
             patch.push({
                 op: 'add', path: '/subitems/-', value: item
             });
@@ -74,6 +134,12 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
             return null;
         }
     }, [subitems]);
+
+    const subitemsDisplay = React.useMemo(() => {
+        if(!showDetails || !subitems) return [];
+        return subitems.map((item, id) => ({ item, id }))
+            .sort((a, b) => a.item.order - b.item.order);
+    }, [subitems, showDetails]);
 
     return (<div className="ItemCont">
         <div className="Item">
@@ -115,15 +181,8 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
             </div>
         </div>
 
-        {showDetails && subitems && subitems.map((item, index) => (<div className="Item" key={index} style={{marginLeft: '0.5em', marginRight: '0.5em'}}>
-            <Checkbox checked={item.checked} onChange={() => apply([{
-                op: 'replace', path: `/subitems/${index}/checked`, value: !item.checked
-            }])}/>
-            <TextareaAutosize value={item.text} style={{flexGrow: 1}} maxRows={5} onChange={(e) => apply([{
-                op: 'replace', path: `/subitems/${index}/text`, value: e.target.value
-            }])}/>
-            <button onClick={() => apply([{ op: 'remove', path: `/subitems/${index}` }])}>✖</button>
-        </div>))}
+        {showDetails && subitemsDisplay && subitemsDisplay.map(({item, id}) =>
+            <Subitem key={id} id={id} item={item} listApply={cdapply(apply, '/subitems')} apply={cdapply(apply, `/subitems/${id}`)}/>)}
         
         <div className="Item" style={{display: showDetails?'flex':'none', marginLeft: '0.5em', marginRight: '0.5em'}}>
             <input type="text" value={newItemText} placeholder="new subitem..."

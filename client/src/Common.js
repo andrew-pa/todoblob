@@ -4,9 +4,9 @@ import Fuse from 'fuse.js';
 export const DAY_IN_TIME = (1000 * 3600 * 24);
 export const APP_NAME = 'Todoblob';
 
-export function Checkbox({ checked, onChange }) {
+export function Checkbox({ checked, onChange, innerRef }) {
     return (
-        <div className="Checkbox" onClick={() => onChange()}>
+        <div className="Checkbox" onClick={() => onChange()} ref={innerRef}>
             <span style={{display: checked?'contents':'none'}}>✓</span>
         </div>
     );
