@@ -32,7 +32,7 @@ function Subitem({item, apply, listApply, id}) {
             // move item dragIndex hoverIndex
             apply([{op: item.order===undefined?'add':'replace', path: '/order', value: dragIndex}]);
 
-            listApply([{op: item.order===undefined?'add':'replace', path: `/${otherItem.id}/order`, value: hoverIndex}]);
+            listApply([{op: otherItem.order===undefined?'add':'replace', path: `/${otherItem.id}/order`, value: hoverIndex}]);
             otherItem.index = hoverIndex;
         }
     });
@@ -72,7 +72,7 @@ export function SubitemStats({subitems}) {
     if(!subitemStats || subitemStats.total <= 0)
         return null;
 
-    return (<span>
+    return (<span style={{flexGrow: 0}}>
         <span style={{position: 'relative', bottom: '0.4em', backgroundColor: 'transparent', fontSize: 'small', margin: 'revert'}}>{subitemStats.checked}</span>
         ⁄
         <span style={{position: 'relative', top: '0.4em', backgroundColor: 'transparent', fontSize: 'small', margin: 'revert'}}>{subitemStats.total}</span>
@@ -155,7 +155,7 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
         <div className="Item">
             <Checkbox checked={checked} onChange={checkOffItem}/>
             <SubitemStats subitems={subitems}/>
-            <TextareaAutosize value={text} style={{flexGrow: 1, overflowY: showDetails?'scroll':'hidden'}} maxRows={showDetails?12:2} onChange={(e) => apply([{
+            <TextareaAutosize value={text} style={{flexGrow: 1, overflowY: showDetails?'scroll':'hidden'}} maxRows={showDetails?12:1} onChange={(e) => apply([{
                 op: 'replace', path: '/text', value: e.target.value
             }])}/>
 
