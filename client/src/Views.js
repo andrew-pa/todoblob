@@ -1,7 +1,7 @@
 import React from 'react';
 import Fuse from 'fuse.js';
 import { usePatchableState, cdapply } from './Transport';
-import { today, addDays, dateToStr, strToDate, TagEdit, dayNames, Checkbox  } from './Common';
+import { today, addDays, dateToStr, strToDate, TagEdit, dayNames, Checkbox, TagContext } from './Common';
 import { ChecklistItem, NewItemEdit } from './Item';
 import { DayTodoList, SuggestionList } from './Lists';
 
@@ -132,4 +132,14 @@ export function SearchView({data, apply}) {
     );
 }
 
+export function UserView({data, apply}) {
+    let {tags: possibleTags, applyTags: applyPossibleTags} = React.useContext(TagContext);
 
+    return (<div className="App">
+        {possibleTags && <>
+        <span>Tag suggestion list:</span>
+        <TagEdit tags={possibleTags} apply={applyPossibleTags}
+            placeholder="no tags"
+            onSubmit={()=>{}}/></>}
+    </div>);
+}

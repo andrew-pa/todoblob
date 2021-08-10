@@ -6,7 +6,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import { APP_NAME, TagContext } from './Common';
-import { SingleDayView, WeekView, SearchView } from './Views.js';
+import { SingleDayView, WeekView, SearchView, UserView } from './Views.js';
 
 /*
  * add some demo gifs
@@ -47,7 +47,7 @@ function TodoApp({userId, logout}) {
                         <NavLink to="/search" activeClassName="current">by filter</NavLink>
                     </div>
                     <div style={{marginRight: '1em'}}>
-                        <span style={{marginRight: '0.5em', fontWeight: 'normal'}}>{userId}</span>
+                        <NavLink to="/user" style={{marginRight: '0.5em', color: 'black'}} activeClassName="current">{userId}</NavLink>
                         <button onClick={logout}>Logout</button>
                     </div>
                 </div>
@@ -63,6 +63,9 @@ function TodoApp({userId, logout}) {
                         </Route>
                         <Route path="/search">
                             <SearchView data={data} apply={apply}/>
+                        </Route>
+                        <Route path="/user">
+                            <UserView data={data} apply={apply}/>
                         </Route>
                         <Route exact path="/">
                             <Redirect to="/day"/>
