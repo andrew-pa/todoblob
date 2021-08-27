@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars, eqeqeq, react-hooks/exhaustive-deps */
 import React from 'react';
 import Fuse from 'fuse.js';
 import { usePatchableState, cdapply } from './Transport';

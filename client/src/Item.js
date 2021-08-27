@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars, eqeqeq */
 import React from 'react';
 import { usePatchableState, cdapply } from './Transport';
 import { DAY_IN_TIME, dateToStr, strToDate, TagEdit, Checkbox, computeDueDateColor, newItem, WeekdaySelector, nextAssignedDay, today } from './Common';
