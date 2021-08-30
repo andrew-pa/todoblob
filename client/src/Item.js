@@ -197,7 +197,7 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
         <div className="Item" style={{display: showDetails?'flex':'none', marginLeft: '0.5em', marginRight: '0.5em'}}>
             <input type="text" value={newItemText} placeholder="new subitem..."
                 style={{flexGrow: '1'}}
-                onKeyDown={(e) => { if(e.key==='Enter') addSubitem(); }}
+                onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) addSubitem(); }}
                 onChange={(e) => setNewItemText(e.target.value)} />
             <button onClick={addSubitem}>+</button>
         </div>
@@ -226,7 +226,10 @@ export function NewItemEdit({ apply, small, itemProps, itemTags, modAsgDate }) {
     }
 
     function onKeyDown(e) {
-        if(e.key === 'Enter' && e.shiftKey) addItem();
+        if(e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            addItem();
+        }
     }
 
     return (
