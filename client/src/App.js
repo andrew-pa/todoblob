@@ -103,6 +103,7 @@ function Login({login}) {
             </div>
             <div className="App">
                 <span style={{fontSize: 'xx-large'}}><b>{APP_NAME}</b> is a todo tracker based around the idea of creating a new todo list everyday; merging todos, calendars and agendas.</span>
+                <button onClick={() => login('demo', 'demo')}>Try it out!</button>
             </div>
         </div>
     );
