@@ -78,7 +78,7 @@ export function createNewUser(userid, password, onSuccess, onFailure) {
         });
 }
 
-export function useTeledata(initial, onUnauth, onError) {
+export function useTeledata(initial, onUnauth, onError, demoMode) {
     const updateTimer = React.useRef(1);
     const numEmptyUpdates = React.useRef(0);
 
@@ -115,7 +115,7 @@ export function useTeledata(initial, onUnauth, onError) {
 
     const syncOutstanding = React.useCallback(() => {
         updateTimer.current = updateTimer.current - 1;
-        if(updateTimer.current > 0) return;
+        if(updateTimer.current > 0 || demoMode) return;
         if(state.outstanding_patch.length === 0) {
             // console.log(`ut ${updateTimer.current} neu ${numEmptyUpdates.current}`);
             updateTimer.current = 1000000; //don't update until the fetch completes
@@ -170,9 +170,10 @@ export function useTeledata(initial, onUnauth, onError) {
                     //apply({clearosp: state.version});
                 });
         }
-    }, [state.outstanding_patch, state.version, onUnauth, onError]);
+    }, [state.outstanding_patch, state.version, onUnauth, onError, demoMode]);
 
     React.useEffect(() => {
+        if(demoMode) return;
         window.addEventListener('unload', syncOutstanding);
         const loop = setInterval(syncOutstanding, 200);
         syncOutstanding(); // get initial data from server
@@ -180,7 +181,7 @@ export function useTeledata(initial, onUnauth, onError) {
             window.removeEventListener('unload', syncOutstanding);
             clearInterval(loop);
         };
-    }, [state.outstanding_patch, syncOutstanding, apply]);
+    }, [state.outstanding_patch, syncOutstanding, apply, demoMode]);
 
     return [state.data, apply, state.outstanding_patch.length, state.version];
 }

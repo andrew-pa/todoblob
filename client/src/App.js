@@ -32,7 +32,8 @@ import { SingleDayView, WeekView, SearchView, UserView } from './Views.js';
  */
 
 function TodoApp({userId, logout}) {
-    const [data, apply, unsync_size, ver] = useTeledata({items: []}, logout);
+    const [data, apply, unsync_size, ver] = useTeledata({items: []}, logout,
+        null, userId === 'demo');
 
     const tagContextValue = React.useMemo(() => ({ tags: data.tags, applyTags: cdapply(apply, '/tags') }), [data.tags, apply]);
 

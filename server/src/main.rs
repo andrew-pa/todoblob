@@ -134,7 +134,7 @@ fn accept_patches(db_pool: State<DbPool>, cookies: &CookieJar<'_>, patch: Json<j
     let mut db_conn = handle_err!(db_pool.get());
     let user_id = user_id_for_session(&mut *db_conn, cookies)?;
     if user_id == "demo" {
-        return Ok(json!({ "version": 0 }).into());
+        return Ok(json!({ "version": -1 }).into());
     }
 
     let uk = format!("user:{}", user_id);
