@@ -1,2 +1,2 @@
-/api/* http://homep.qxczv.pw:7867/:splat 200!
+/api/* https://homep.qxczv.pw/api/:splat 200!
 /* /index.html 200
