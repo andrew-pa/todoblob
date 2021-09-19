@@ -84,7 +84,7 @@ export function useTeledata(initial, onUnauth, onError, demoMode) {
 
     const [state, apply] = React.useReducer(
         (old_state, patch) => {
-            // console.log('reduce', old_state, patch);
+            // special cases for sync
             if(patch.clearosp !== undefined)
                 return { data: old_state.data, outstanding_patch: [], version: patch.clearosp };
             if(patch.init !== undefined) {
@@ -98,79 +98,89 @@ export function useTeledata(initial, onUnauth, onError, demoMode) {
                     version: patch.server_patch.version
                 };
             }
+
+            // normally attempt to apply to local data, and add to outstanding patchset
+            if(updateTimer.current > 5) updateTimer.current = 5;
             try {
-            return {
-                data: jsonPatch.apply(oo.clone(old_state.data), patch).doc,
-                outstanding_patch: smartPatchMerge(old_state.outstanding_patch, patch),
-                version: old_state.version
-            };
+                return {
+                    data: jsonPatch.apply(oo.clone(old_state.data), patch).doc,
+                    outstanding_patch: smartPatchMerge(old_state.outstanding_patch, patch),
+                    version: old_state.version
+                };
             } catch(e) {
                 console.log(e, patch);
-                updateTimer.current = 0;
                 return old_state;
             }
         },
         {data: initial, outstanding_patch: [], version: -1}
     );
 
+    function poll_server_changes() {
+        updateTimer.current = 1000000; //don't update until the fetch completes
+        fetch('/api/data?client_version='+state.version)
+            .then(res => {
+                if(res.status !== 200) throw res;
+                return res.json();
+            })
+            .then(res => {
+                if(res !== null) {
+                    if(res.data !== undefined) {
+                        apply({init: res});
+                        numEmptyUpdates.current = 0;
+                        updateTimer.current = 0;
+                    } else if(res.patch !== undefined) {
+                        apply({server_patch: res});
+                        numEmptyUpdates.current = 0;
+                        updateTimer.current = 0;
+                    } else {
+                        throw res;
+                    }
+                } else {
+                    updateTimer.current = Math.min(Math.floor(Math.pow(1.5, numEmptyUpdates.current)), 64);
+                    numEmptyUpdates.current += 1;
+                }
+            })
+            .catch(e => {
+                numEmptyUpdates.current = 0;
+                updateTimer.current = 50;
+                if(e.status === 401) {
+                    console.log('deauth');
+                    onUnauth();
+                } else {
+                    console.log(e);
+                    if(onError) onError(e);
+                }
+            });
+    }
+
+    function push_client_changes() {
+        fetch('/api/data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(state.outstanding_patch)
+        })
+            .then(res => { if(res.status !== 200) throw res; return res.json(); })
+            .then(ver => {
+                updateTimer.current = 0;
+                apply({clearosp: ver.version});
+            })
+            .catch(e => {
+                console.log(e);
+                updateTimer.current = 50;
+                //apply({clearosp: state.version});
+            });
+    }
+
     const syncOutstanding = React.useCallback(() => {
+        //console.log(`updateTimer = ${updateTimer.current}`);
         updateTimer.current = updateTimer.current - 1;
         if(updateTimer.current > 0 || demoMode) return;
         if(state.outstanding_patch.length === 0) {
-            // console.log(`ut ${updateTimer.current} neu ${numEmptyUpdates.current}`);
-            updateTimer.current = 1000000; //don't update until the fetch completes
-            fetch('/api/data?client_version='+state.version)
-                .then(res => {
-                    if(res.status !== 200) throw res;
-                    return res.json();
-                })
-                .then(res => {
-                    if(res !== null) {
-                        if(res.data !== undefined) {
-                            apply({init: res});
-                            numEmptyUpdates.current = 0;
-                            updateTimer.current = 0;
-                        } else if(res.patch !== undefined) {
-                            apply({server_patch: res});
-                            numEmptyUpdates.current = 0;
-                            updateTimer.current = 0;
-                        } else {
-                            throw res;
-                        }
-                    } else {
-                        updateTimer.current = Math.min(Math.pow(2, numEmptyUpdates.current), 128);
-                        numEmptyUpdates.current += 1;
-                    }
-                })
-                .catch(e => {
-                    numEmptyUpdates.current = 0;
-                    updateTimer.current = 50;
-                    if(e.status === 401) {
-                        console.log('deauth');
-                        onUnauth();
-                    } else {
-                        console.log(e);
-                        if(onError) onError(e);
-                    }
-                });
+            poll_server_changes();
         } else {
-            fetch('/api/data', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(state.outstanding_patch)
-            })
-                .then(res => { if(res.status !== 200) throw res; return res.json(); })
-                .then(ver => {
-                    updateTimer.current = 1;
-                    apply({clearosp: ver.version});
-                })
-                .catch(e => {
-                    console.log(e);
-                    updateTimer.current = 50;
-                    //apply({clearosp: state.version});
-                });
+            push_client_changes();
         }
-    }, [state.outstanding_patch, state.version, onUnauth, onError, demoMode]);
+    }, [state.outstanding_patch, state.version, onUnauth, onError, demoMode, poll_server_changes, push_client_changes]);
 
     React.useEffect(() => {
         if(demoMode) return;
