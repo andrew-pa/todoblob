@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React from 'react';
 import jsonPatch from 'json8-patch';
 import oo from 'json8';

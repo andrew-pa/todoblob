@@ -86,7 +86,7 @@ export function SearchView({data, apply}) {
         }
         if(queryTags.length > 0) {
             fzres = fzres.filter(i =>
-                i.item.tags.reduce((a, v) => a||(queryTags.indexOf(v)!==-1), false));
+                queryTags.reduce((a, v) => a&&(i.item.tags.indexOf(v)!==-1), true));
         }
         if(checkStateQ != 2) {
             fzres = fzres.filter(i => checkStateQ == 1 ? i.item.checked : !i.item.checked);
