@@ -18,6 +18,7 @@ export function dateToStr(date) {
 }
 
 export function strToDate(str) {
+    if(!str || str.length === 0) return undefined;
     const re = /(\d\d\d\d)-(\d\d)-(\d\d)/;
     let ma = re.exec(str);
     if(!ma) console.log(str, ma);

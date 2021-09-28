@@ -81,6 +81,18 @@ input[type=text]:hover {
     border: 1px solid gray;
 }
 
+input[type=number] {
+    margin: 0.25em;
+    border: 1px solid transparent;
+    padding: 0.25em;
+    width: 3em;
+    text-align: center;
+}
+
+input[type=number]:hover {
+    border: 1px solid gray;
+}
+
 textarea {
     margin: 0.25em;
     border: 1px solid transparent;
@@ -284,7 +296,8 @@ input[type=date]:hover {
     border: none;
     margin: 0;
     font-size: medium;
-    width: 0em;
+    width: 0.5em;
+    max-width: 8em;
 }
 
 .TagEdit input[type=text]:focus {

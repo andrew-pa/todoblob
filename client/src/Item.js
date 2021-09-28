@@ -80,7 +80,7 @@ export function SubitemStats({subitems}) {
     </span>);
 }
 
-export function ChecklistItem({data: { text, checked, duedate, assigned_day, tags, reoccuring_assignment, subitems }, apply, small}) {
+export function ChecklistItem({data: { text, checked, duedate, priority, assigned_day, tags, reoccuring_assignment, subitems }, apply, small}) {
     const [showDetails, setShowDetails] = React.useState(false);
     const [newItemText, setNewItemText] = React.useState('');
 
@@ -156,7 +156,7 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
         <div className="Item">
             <Checkbox checked={checked} onChange={checkOffItem}/>
             <SubitemStats subitems={subitems}/>
-            <TextareaAutosize value={text} style={{flexGrow: 1, overflowY: showDetails?'scroll':'hidden'}} maxRows={showDetails?12:1} onChange={(e) => apply([{
+            <TextareaAutosize value={text} style={{flexGrow: 1, overflowY: showDetails?'scroll':'hidden', textDecoration: checked?'line-through':''}} maxRows={showDetails?12:1} onChange={(e) => apply([{
                 op: 'replace', path: '/text', value: e.target.value
             }])}/>
 
@@ -168,10 +168,18 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
 
         <div className="Item" style={{display: showDetails?'flex':'none', justifyContent: 'flex-start', marginLeft: '0.5em', marginBottom: '0.5em'}}>
             {small && controls()}
+
             <div><span>assigned:</span>
             <input type="date" value={assigned_day} required style={{maxWidth: 'min-content'}} onChange={(e) => apply([{
                 op: 'replace', path: '/assigned_day', value: e.target.value
             }])}/></div>
+
+            <div><span>priority:</span>
+            <input type="number" value={priority} onChange={(e) => apply([{
+                op: priority===undefined?'add':'replace', path: '/priority', value: e.target.value
+            }])}/>
+            </div>
+
             <div>
             <span style={{textAlign: "left"}}>reoccuring:</span>
             <input type="checkbox" checked={reoccuring_assignment!==undefined?true:false} onChange={(e) => {
@@ -184,6 +192,7 @@ export function ChecklistItem({data: { text, checked, duedate, assigned_day, tag
                     apply([{ op: 'remove', path: '/reoccuring_assignment' }]);
                 }
             }}/>
+
             {reoccuring_assignment!==undefined &&
                 <WeekdaySelector value={reoccuring_assignment} onChange={(n) => apply([{
                     op: 'replace', path: '/reoccuring_assignment', value: n
