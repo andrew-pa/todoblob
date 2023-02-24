@@ -1,10 +1,7 @@
-use std::{borrow::Cow, collections::HashMap, path::{Path, PathBuf}, sync::{Arc, RwLock, atomic::{AtomicUsize, Ordering}}};
-use rocket::request::State;
-use rocket::response::{NamedFile, status::{NotFound, BadRequest, Custom}};
-use rocket::http::{Cookie, CookieJar, Status};
-use rocket_contrib::json::{Json, JsonValue};
+use std::collections::HashMap;
+use rocket::{State, response::status::Custom, http::{Cookie, CookieJar, Status}, serde::json::{Json, Value as JsonValue}};
 use serde_json::json;
-use log::{log, info, debug, warn, error};
+use log::*;
 use redis::Commands;
 use time::Duration;
 
@@ -22,27 +19,26 @@ macro_rules! handle_err {
     };
 }
 
-#[rocket::get("/<file..>", rank = 0)]
-async fn static_content(file: PathBuf) -> Result<NamedFile, Custom<()>>{
-    let path = Path::new("../client/build/").join(file);
-    match NamedFile::open(&path).await {
-        Ok(f) => Ok(f),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            Ok(handle_err!(NamedFile::open("../client/build/index.html").await))
-        },
-        Err(e) => handle_err!(Err(e))
-    }
-}
-
-#[rocket::get("/", rank = 0)]
-async fn spa_root() -> Result<NamedFile, Custom<()>>{
-    let path = Path::new("../client/build/index.html");
-    Ok(handle_err!(NamedFile::open(&path).await))
-}
-
+// #[rocket::get("/<file..>", rank = 0)]
+// async fn static_content(file: PathBuf) -> Result<NamedFile, Custom<()>>{
+//     let path = Path::new("../client/build/").join(file);
+//     match NamedFile::open(&path).await {
+//         Ok(f) => Ok(f),
+//         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+//             Ok(handle_err!(NamedFile::open("../client/build/index.html").await))
+//         },
+//         Err(e) => handle_err!(Err(e))
+//     }
+// }
+//
+// #[rocket::get("/", rank = 0)]
+// async fn spa_root() -> Result<NamedFile, Custom<()>>{
+//     let path = Path::new("../client/build/index.html");
+//     Ok(handle_err!(NamedFile::open(&path).await))
+// }
 
 #[rocket::post("/api/user/new?<id>&<pswd>")]
-fn create_new_user(db_pool: State<DbPool>, id: String, pswd: String) -> Result<(), Custom<()>> {
+fn create_new_user(db_pool: &State<DbPool>, id: String, pswd: String) -> Result<(), Custom<()>> {
     let mut db_conn = handle_err!(db_pool.get());
     if handle_err!(db_conn.exists(format!("user:{}", id))) {
         Err(Custom(rocket::http::Status::BadRequest,()))
@@ -60,7 +56,7 @@ fn create_new_user(db_pool: State<DbPool>, id: String, pswd: String) -> Result<(
 }
 
 #[rocket::get("/api/user/login?<id>&<pswd>")]
-fn authenticate_user(db_pool: State<DbPool>, cookies: &CookieJar<'_>, id: String, pswd: String) -> Result<(), Custom<()>> {
+fn authenticate_user(db_pool: &State<DbPool>, cookies: &CookieJar<'_>, id: String, pswd: String) -> Result<(), Custom<()>> {
     let mut db_conn = handle_err!(db_pool.get());
     let correct_pswd_hash: Option<String> = handle_err!(db_conn.hget(format!("user:{}", id), "password"));
     if let Some(correct_pswd_hash) = correct_pswd_hash {
@@ -89,13 +85,13 @@ fn user_id_for_session(db_conn: &mut impl Commands, cookies: &CookieJar<'_>) -> 
 }
 
 #[rocket::get("/api/user/check_cookie")]
-fn check_user_cookie(db_pool: State<DbPool>, cookies: &CookieJar<'_>) -> Result<String, Custom<()>> {
+fn check_user_cookie(db_pool: &State<DbPool>, cookies: &CookieJar<'_>) -> Result<String, Custom<()>> {
     let mut db_conn = handle_err!(db_pool.get());
     user_id_for_session(&mut *db_conn, cookies)
 }
 
 #[rocket::get("/api/data?<client_version>")]
-fn get_data(db_pool: State<DbPool>, cookies: &CookieJar<'_>, client_version: isize) -> Result<JsonValue, Custom<()>> {
+fn get_data(db_pool: &State<DbPool>, cookies: &CookieJar<'_>, client_version: isize) -> Result<JsonValue, Custom<()>> {
     let mut db_conn = handle_err!(db_pool.get());
     let user_id = user_id_for_session(&mut *db_conn, cookies)?;
 
@@ -128,7 +124,7 @@ fn get_data(db_pool: State<DbPool>, cookies: &CookieJar<'_>, client_version: isi
 }
 
 #[rocket::post("/api/data", data = "<patch>")]
-fn accept_patches(db_pool: State<DbPool>, cookies: &CookieJar<'_>, patch: Json<json_patch::Patch>)
+fn accept_patches(db_pool: &State<DbPool>, cookies: &CookieJar<'_>, patch: Json<json_patch::Patch>)
     -> Result<JsonValue, Custom<()>>
 {
     let mut db_conn = handle_err!(db_pool.get());
@@ -140,7 +136,8 @@ fn accept_patches(db_pool: State<DbPool>, cookies: &CookieJar<'_>, patch: Json<j
     let uk = format!("user:{}", user_id);
     let info: HashMap<String, String> = handle_err!(db_conn.hgetall(&uk));
     let mut current_version: isize = handle_err!(info["current_version"].parse());
-    let last_version: isize = handle_err!(info["last_version"].parse());
+    // TODO: why does this not get used?
+    let _last_version: isize = handle_err!(info["last_version"].parse());
 
     let data_str: String = handle_err!(db_conn.get(format!("data:{}", user_id)));
     let mut current_data = handle_err!(serde_json::from_str(&data_str));
@@ -164,17 +161,17 @@ fn accept_patches(db_pool: State<DbPool>, cookies: &CookieJar<'_>, patch: Json<j
 }
 
 #[rocket::launch]
-fn rocket() -> rocket::Rocket {
+fn rocket() -> _ {
     env_logger::init();
     info!("starting up!");
     let redis_url = std::env::var("REDIS_URL").unwrap_or("redis://127.0.0.1".into());
     info!("redis @ {}", redis_url);
     let redis_client = redis::Client::open(redis_url).unwrap();
     let db_pool = r2d2::Pool::builder().max_size(32).build(redis_client).unwrap();
-    rocket::ignite()
+    rocket::build()
         .manage(db_pool)
         .mount("/", rocket::routes![
-            static_content, spa_root,
+            // static_content, spa_root,
             get_data, accept_patches,
             create_new_user, authenticate_user, check_user_cookie
         ])
