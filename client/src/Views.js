@@ -39,7 +39,7 @@ export function SingleDayView({data, apply}) {
 export function WeekView({data, apply}) {
     const [currentDate, setCurrentDate] = React.useState(today());
 
-    const dates = React.useMemo(() => [-3, -2, -1, 0, 1, 2, 3].map(i => addDays(currentDate, i)), [currentDate]);
+    const dates = React.useMemo(() => [-3, -2, -1, 0, 1, 2, 3, 4, 5].map(i => addDays(currentDate, i)), [currentDate]);
 
     return (
         <div className="App">
